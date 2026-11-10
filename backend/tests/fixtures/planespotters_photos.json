@@ -1,0 +1,23 @@
+{
+    "photos": [
+        {
+            "id": "1970484",
+            "thumbnail": {
+                "src": "https://t.plnspttrs.net/32051/1970484_7e78cf6a65_t.jpg",
+                "size": {
+                    "width": 200,
+                    "height": 133
+                }
+            },
+            "thumbnail_large": {
+                "src": "https://t.plnspttrs.net/32051/1970484_7e78cf6a65_280.jpg",
+                "size": {
+                    "width": 420,
+                    "height": 280
+                }
+            },
+            "link": "https://www.planespotters.net/photo/1970484/lx-lbr-luxair-boeing-737-7k2-wl?utm_source=api",
+            "photographer": "Tomas Scheffer"
+        }
+    ]
+}

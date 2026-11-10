@@ -1,0 +1,17 @@
+{
+    "response": {
+        "aircraft": {
+            "type": "737NG 7K2/W",
+            "icao_type": "B737",
+            "manufacturer": "Boeing",
+            "mode_s": "4D00F1",
+            "registration": "LX-LBR",
+            "registered_owner_country_iso_name": "LU",
+            "registered_owner_country_name": "Luxembourg",
+            "registered_owner_operator_flag_code": "LGL",
+            "registered_owner": "Luxair",
+            "url_photo": "https://image.airport-data.com/aircraft/001683360.jpg",
+            "url_photo_thumbnail": "https://airport-data.com/images/aircraft/thumbnails/001/683/001683360.jpg"
+        }
+    }
+}
