@@ -134,6 +134,7 @@ def run(http: httpx.Client, conn: psycopg.Connection, state: CollectorState) -> 
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # sem uma linha por pedido
     migrate()
     log.info("A ler %s a cada %ss", settings.dump1090_url, settings.poll_interval_seconds)
     state = CollectorState()

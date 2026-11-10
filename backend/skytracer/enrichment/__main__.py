@@ -23,6 +23,7 @@ PURGE_EVERY_S = 24 * 3600
 
 def main() -> None:
     logging.basicConfig(level=logging.INFO, format="%(asctime)s %(levelname)s %(message)s")
+    logging.getLogger("httpx").setLevel(logging.WARNING)  # sem uma linha por pedido
     migrate()
     headers = {"User-Agent": settings.http_user_agent}
     rps = settings.enrich_requests_per_second
