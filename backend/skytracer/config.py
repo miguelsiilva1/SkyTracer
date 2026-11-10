@@ -12,6 +12,7 @@ class Settings(BaseSettings):
     retention_days: int = 30
     database_url: str = "postgresql://skytracer:skytracer@localhost:5432/skytracer"
     api_cors_origins: str = "http://localhost:8081,http://localhost:19006"
+    ws_interval_seconds: float = 1.0
 
     # Enriquecimento (adsbdb + planespotters)
     http_user_agent: str = "SkyTracer/0.1 (+https://github.com/miguelsiilva1/SkyTracer)"
