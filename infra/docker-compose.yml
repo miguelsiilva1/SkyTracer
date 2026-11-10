@@ -26,6 +26,17 @@ services:
       db:
         condition: service_healthy
 
+  enricher:
+    build: ../backend
+    command: python -m skytracer.enrichment
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql://skytracer:skytracer@db:5432/skytracer
+    depends_on:
+      db:
+        condition: service_healthy
+
   api:
     build: ../backend
     command: uvicorn skytracer.api.main:app --host 0.0.0.0 --port 8000
