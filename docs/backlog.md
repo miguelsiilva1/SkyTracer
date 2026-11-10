@@ -36,25 +36,43 @@ Gestão em **Scrum**, sprints de 2 semanas. Prioridade MoSCoW (M = must, S = sho
 | US18 | E5 | M | 8 | Como utilizador, quero usar a aplicação na web, em Android e em iOS com as mesmas funcionalidades. |
 | US19 | E5 | C | 2 | Como utilizador, quero guardar voos ou aviões favoritos. |
 
-## Critérios de aceitação (sprint atual / próximo)
+## Critérios de aceitação
 
-**US01**
+Estado: ✅ feito · 🟡 parcial (backend feito, falta a UI)
+
+**US01** ✅
 - Dado o `aircraft.json` do professor disponível, o collector lê-o a cada `POLL_INTERVAL_SECONDS`.
 - Aceita campos do dump1090-mutability (`altitude`, `speed`) e do dump1090-fa (`alt_baro`, `gs`).
 - Se a leitura falhar, regista o erro e tenta de novo na iteração seguinte sem terminar.
+- A hora da posição vem de `seen_pos` e posições com mais de 60 s não contam como atuais.
 
-**US02**
+**US02** ✅
 - Cada avião visto fica na tabela `aircraft` com `first_seen` / `last_seen`.
 - A posição de cada avião é guardada no máximo a cada `POSITION_MIN_INTERVAL_SECONDS`.
 - Aviões sem posição não geram linhas em `position`.
+- A mesma posição não é guardada duas vezes.
+- O estado atual de cada avião fica em `aircraft_live`, atualizado a cada leitura.
+- Retenção: `position` e `receiver_snapshot` são apagados ao fim de `RETENTION_DAYS` (30).
+
+**US03** 🟡 (backend no Sprint 1, UI no Sprint 2)
+- A rota (companhia, origem → destino) de cada callsign visto vem do adsbdb e fica em `flight_route`.
+- `/aircraft/live`, `/aircraft/{hex}` e `/ws/live` devolvem a rota junto com a posição.
+
+**US04** 🟡 (backend no Sprint 1, UI no Sprint 2)
+- Matrícula, modelo e operador vêm do adsbdb; a foto vem do planespotters, com o nome do fotógrafo e o link para a página da foto.
+
+**US05** ✅
+- Cada hex e cada callsign é consultado uma vez e fica em cache (aeronave 30 dias, rota 7 dias).
+- "Não encontrado" também fica em cache; os erros são repetidos ao fim de 1 h.
+- No máximo 1 pedido/s por API, retry com backoff exponencial (respeita `Retry-After`).
 
 ## Plano de sprints
 
 | Sprint | Datas | Objetivo | Stories |
 |---|---|---|---|
 | 0 | 10 – 16 nov | Repositório, arquitetura, ambiente Docker, backlog | — |
-| 1 | 17 – 30 nov | Recolha e persistência a funcionar na cloud | US01, US02, US05 |
-| 2 | 1 – 14 dez | Mapa completo com enriquecimento | US03, US04, US06–US10 |
+| 1 | 17 – 30 nov | Recolha e persistência a funcionar na cloud | US01, US02, US05 ✅; backend de US03, US04 (trazido do Sprint 2); API REST + WebSocket |
+| 2 | 1 – 14 dez | Mapa completo com enriquecimento | UI de US03, US04; US06–US10 |
 | 3 | 15 – 28 dez | App multiplataforma, alertas, replay, cobertura | US12, US13, US17, US18 |
 | 4 | 29 dez – 5 jan | Extras, polimento, relatório, ensaio da demo | US11, US14–US16, US19 |
 
