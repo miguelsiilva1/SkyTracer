@@ -10,6 +10,7 @@ requires-python = ">=3.11"
 dependencies = [
     "httpx>=0.27",
     "psycopg[binary]>=3.2",
+    "psycopg-pool>=3.2",
     "fastapi>=0.115",
     "uvicorn[standard]>=0.30",
     "pydantic-settings>=2.4",
@@ -20,6 +21,12 @@ dev = ["pytest>=8", "ruff>=0.6"]
 
 [tool.setuptools.packages.find]
 include = ["skytracer*"]
+
+[tool.setuptools.package-data]
+"skytracer.db" = ["migrations/*.sql"]
+
+[tool.pytest.ini_options]
+markers = ["db: precisa de um PostgreSQL de teste (TEST_DATABASE_URL)"]
 
 [tool.ruff]
 line-length = 100
