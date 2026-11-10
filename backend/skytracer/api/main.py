@@ -30,6 +30,7 @@ log = logging.getLogger("skytracer.api")
 
 Hex = Annotated[str, Path(pattern=r"^[0-9a-fA-F]{6}$")]
 LIVE_MAX_AGE_S = 60
+SEND_TIMEOUT_S = 2.0
 
 
 class LiveBroadcaster:
@@ -58,10 +59,13 @@ class LiveBroadcaster:
             await asyncio.sleep(settings.ws_interval_seconds)
 
     async def _send(self, ws: WebSocket, message: str) -> None:
+        # timeout: um cliente lento não pode atrasar o envio para os restantes
         try:
-            await ws.send_text(message)
-        except (WebSocketDisconnect, RuntimeError):  # cliente desligado
+            await asyncio.wait_for(ws.send_text(message), timeout=SEND_TIMEOUT_S)
+        except (WebSocketDisconnect, RuntimeError, TimeoutError):  # desligado ou lento
             self.clients.discard(ws)
+            with contextlib.suppress(Exception):
+                await ws.close()
 
 
 @asynccontextmanager
