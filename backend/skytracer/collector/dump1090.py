@@ -1,0 +1,101 @@
+"""Leitura e normalização do aircraft.json do dump1090.
+
+O recetor do professor corre dump1090-mutability, que usa nomes de campos antigos
+(`altitude`, `speed`, `vert_rate`). Versões mais recentes (dump1090-fa / readsb) usam
+`alt_baro`, `gs`, `baro_rate`. Este módulo aceita as duas e devolve sempre o mesmo formato.
+
+Só usa a biblioteca padrão para ser fácil de testar.
+"""
+
+from __future__ import annotations
+
+from dataclasses import dataclass
+from datetime import UTC, datetime
+from typing import Any
+
+
+@dataclass(frozen=True, slots=True)
+class AircraftState:
+    hex: str
+    ts: datetime
+    callsign: str | None
+    lat: float | None
+    lon: float | None
+    altitude_ft: int | None
+    on_ground: bool
+    speed_kt: float | None
+    track_deg: float | None
+    vert_rate_fpm: int | None
+    squawk: str | None
+    rssi_dbfs: float | None
+    mlat: bool
+    seen_s: float | None
+
+    @property
+    def has_position(self) -> bool:
+        return self.lat is not None and self.lon is not None
+
+
+@dataclass(frozen=True, slots=True)
+class Snapshot:
+    now: datetime
+    messages_total: int | None
+    aircraft: list[AircraftState]
+
+
+def _first(d: dict[str, Any], *keys: str) -> Any:
+    for k in keys:
+        if d.get(k) is not None:
+            return d[k]
+    return None
+
+
+def parse_aircraft(raw: dict[str, Any], now: datetime) -> AircraftState | None:
+    hex_ = (raw.get("hex") or "").strip().lower()
+    # '~' indica endereço não-ICAO (TIS-B); ignoramos por agora
+    if not hex_ or hex_.startswith("~") or len(hex_) != 6:
+        return None
+
+    alt = _first(raw, "alt_baro", "altitude")
+    on_ground = alt == "ground"
+    altitude_ft = int(alt) if isinstance(alt, (int, float)) else None
+
+    callsign = (raw.get("flight") or "").strip() or None
+    mlat_fields = raw.get("mlat") or []
+
+    seen = raw.get("seen")
+    ts = now
+    if isinstance(seen, (int, float)):
+        ts = datetime.fromtimestamp(now.timestamp() - seen, tz=UTC)
+
+    vr = _first(raw, "baro_rate", "vert_rate", "geom_rate")
+
+    return AircraftState(
+        hex=hex_,
+        ts=ts,
+        callsign=callsign,
+        lat=raw.get("lat"),
+        lon=raw.get("lon"),
+        altitude_ft=altitude_ft,
+        on_ground=on_ground,
+        speed_kt=_first(raw, "gs", "speed"),
+        track_deg=raw.get("track"),
+        vert_rate_fpm=int(vr) if isinstance(vr, (int, float)) else None,
+        squawk=raw.get("squawk"),
+        rssi_dbfs=raw.get("rssi"),
+        mlat="lat" in mlat_fields,
+        seen_s=seen if isinstance(seen, (int, float)) else None,
+    )
+
+
+def parse_snapshot(payload: dict[str, Any]) -> Snapshot:
+    now_raw = payload.get("now")
+    now = (
+        datetime.fromtimestamp(now_raw, tz=UTC)
+        if isinstance(now_raw, (int, float))
+        else datetime.now(tz=UTC)
+    )
+    aircraft = [
+        a for raw in payload.get("aircraft", []) if (a := parse_aircraft(raw, now)) is not None
+    ]
+    return Snapshot(now=now, messages_total=payload.get("messages"), aircraft=aircraft)

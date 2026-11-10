@@ -1,0 +1,44 @@
+services:
+  db:
+    image: postgres:17
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: skytracer
+      POSTGRES_PASSWORD: skytracer
+      POSTGRES_DB: skytracer
+    ports:
+      - "5432:5432"
+    volumes:
+      - pgdata:/var/lib/postgresql/data
+      - ./db/init.sql:/docker-entrypoint-initdb.d/01-init.sql:ro
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U skytracer"]
+      interval: 5s
+      retries: 10
+
+  collector:
+    build: ../backend
+    command: python -m skytracer.collector
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql://skytracer:skytracer@db:5432/skytracer
+    depends_on:
+      db:
+        condition: service_healthy
+
+  api:
+    build: ../backend
+    command: uvicorn skytracer.api.main:app --host 0.0.0.0 --port 8000
+    restart: unless-stopped
+    env_file: ../.env
+    environment:
+      DATABASE_URL: postgresql://skytracer:skytracer@db:5432/skytracer
+    ports:
+      - "8000:8000"
+    depends_on:
+      db:
+        condition: service_healthy
+
+volumes:
+  pgdata:

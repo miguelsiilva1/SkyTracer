@@ -1,0 +1,25 @@
+[build-system]
+requires = ["setuptools>=69"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "skytracer"
+version = "0.1.0"
+description = "SkyTracer — recolha, tratamento e visualização de dados Modo S (STAER)"
+requires-python = ">=3.11"
+dependencies = [
+    "httpx>=0.27",
+    "psycopg[binary]>=3.2",
+    "fastapi>=0.115",
+    "uvicorn[standard]>=0.30",
+    "pydantic-settings>=2.4",
+]
+
+[project.optional-dependencies]
+dev = ["pytest>=8", "ruff>=0.6"]
+
+[tool.setuptools.packages.find]
+include = ["skytracer*"]
+
+[tool.ruff]
+line-length = 100
