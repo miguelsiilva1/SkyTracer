@@ -39,7 +39,6 @@ class LiveBroadcaster:
     def __init__(self, pool: AsyncConnectionPool) -> None:
         self.pool = pool
         self.clients: set[WebSocket] = set()
-        self.latest: str | None = None
 
     async def fetch(self) -> str:
         async with self.pool.connection() as conn:
@@ -52,8 +51,8 @@ class LiveBroadcaster:
         while True:
             if self.clients:
                 try:
-                    self.latest = await self.fetch()
-                    await asyncio.gather(*(self._send(ws, self.latest) for ws in list(self.clients)))
+                    message = await self.fetch()
+                    await asyncio.gather(*(self._send(ws, message) for ws in list(self.clients)))
                 except Exception:  # o ciclo não pode morrer
                     log.exception("Falha no broadcast do /ws/live")
             await asyncio.sleep(settings.ws_interval_seconds)
@@ -136,7 +135,8 @@ async def ws_live(ws: WebSocket) -> None:
     """Envia a cada ~1 s `{"ts": ..., "aircraft": [...]}` (mesmo formato do /aircraft/live)."""
     live: LiveBroadcaster = app.state.live
     await ws.accept()
-    await ws.send_text(live.latest or await live.fetch())
+    # estado atual logo na ligação (sem clientes o ciclo não lê a BD)
+    await ws.send_text(await live.fetch())
     live.clients.add(ws)
     try:
         while True:  # mantém a ligação; mensagens do cliente são ignoradas
