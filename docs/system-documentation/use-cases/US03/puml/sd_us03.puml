@@ -1,0 +1,43 @@
+@startuml
+autonumber
+skinparam monochrome true
+participant "enrichment\nrun_once()" as W
+participant "enrich_route()" as ER
+participant "adsbdb.fetch_route()" as A
+participant "RateLimitedClient" as RL
+participant "adsbdb\n<<externo>>" as Ext
+database "PostgreSQL" as DB
+actor "Utilizador" as U
+participant "API FastAPI\nlive_aircraft()" as API
+
+== Enriquecimento (assíncrono, a cada 5 s) ==
+W -> DB : ROUTES_TODO (callsigns sem rota ou expirada)
+DB --> W : callsigns[]
+loop para cada callsign
+  W -> ER : enrich_route(conn, clients, callsign)
+  activate ER
+  ER -> A : fetch_route(client, url, callsign)
+  A -> RL : get_json(/callsign/{callsign})
+  RL -> Ext : GET (throttled, retry)
+  Ext --> RL : 200 JSON | 404
+  RL --> A : payload | None
+  A --> ER : RouteInfo | None
+  alt EnrichmentError
+    ER -> ER : status = "error"
+  else RouteInfo
+    ER -> ER : status = "ok"
+  else None
+    ER -> ER : status = "not_found"
+  end
+  ER -> DB : UPSERT_ROUTE + COMMIT
+  deactivate ER
+end
+
+== Consulta pelo utilizador ==
+U -> API : GET /aircraft/live
+activate API
+API -> DB : LIVE (aircraft_live\nLEFT JOIN aircraft\nLEFT JOIN flight_route status = 'ok')
+DB --> API : linhas
+API --> U : 200 [ { hex, callsign, ..., airline_name,\n origin_iata, dest_iata, ... } ]
+deactivate API
+@enduml

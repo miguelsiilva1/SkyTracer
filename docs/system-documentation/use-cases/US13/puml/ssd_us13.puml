@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : configurarAlerta(tipo, critério, ativo)
+activate S
+S --> U : alerta guardado
+deactivate S
+@enduml

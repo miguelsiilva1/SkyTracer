@@ -1,0 +1,136 @@
+@startuml DM
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam shadowing false
+hide circle
+hide methods
+left to right direction
+
+title SkyTracer — Modelo de Domínio
+
+package "Receção" {
+  class "Recetor" as Receiver <<Entity>> {
+    url
+    localização
+  }
+  class "Leitura do Recetor" as Snapshot <<Entity>> {
+    instante
+    totalMensagens
+    totalAeronaves
+    aeronavesComPosição
+  }
+}
+
+package "Aeronave" <<Aggregate>> {
+  class "Aeronave" as Aircraft <<Entity>> <<Root>> {
+    endereçoICAO : hex
+    categoria
+    primeiraDeteção
+    últimaDeteção
+  }
+  class "Identificação" as Ident <<Value Object>> {
+    matrícula
+    tipoICAO
+    modelo
+    fabricante
+    operador
+    país
+  }
+  class "Fotografia" as Photo <<Value Object>> {
+    url
+    fotógrafo
+    ligação
+  }
+  class "Estado de Enriquecimento" as EnrichState <<Value Object>> {
+    estado : ok / não encontrado / erro
+    instante
+  }
+}
+
+package "Observação" {
+  class "Estado Atual" as Live <<Entity>> {
+    instanteMensagem
+    instantePosição
+    callsign
+    posição
+    altitude
+    noSolo
+    velocidade
+    rumo
+    razãoVertical
+    squawk
+    rssi
+    mlat
+  }
+  class "Posição" as Position <<Entity>> {
+    instante
+    callsign
+    latitude
+    longitude
+    altitude
+    velocidade
+    rumo
+    squawk
+    rssi
+    mlat
+  }
+}
+
+package "Voo" {
+  class "Voo (Callsign)" as Flight <<Entity>> {
+    callsign
+  }
+  class "Rota" as Route <<Entity>> {
+    estado
+    obtidaEm
+  }
+  class "Companhia Aérea" as Airline <<Entity>> {
+    nome
+    códigoICAO
+    códigoIATA
+  }
+  class "Aeroporto" as Airport <<Entity>> {
+    códigoICAO
+    códigoIATA
+    nome
+    coordenadas
+  }
+}
+
+package "Planeado (Sprints 3-4)" {
+  class "Alerta" as Alert <<Entity>> <<planeado>> {
+    tipo : emergência / aeronave / modelo / militar
+    ativo
+  }
+  class "Célula de Cobertura" as Coverage <<Entity>> <<planeado>> {
+    azimute
+    alcanceMáximo
+    rssiMédio
+  }
+  class "Favorito" as Favourite <<Entity>> <<planeado>>
+  class "METAR" as Metar <<Value Object>> <<planeado>> {
+    vento
+    visibilidade
+    instante
+  }
+}
+
+Receiver "1" -- "*" Snapshot : produz >
+Snapshot "1" -- "*" Live : atualiza >
+Aircraft "1" *-- "0..1" Ident : identificada por >
+Aircraft "1" *-- "0..1" Photo : ilustrada por >
+Aircraft "1" *-- "1" EnrichState
+Aircraft "1" -- "0..1" Live : está em >
+Aircraft "1" -- "*" Position : percorreu >
+Live "*" -- "0..1" Flight : opera como >
+Position "*" -- "0..1" Flight : sob >
+Flight "1" -- "0..1" Route : segue >
+Route "*" -- "0..1" Airline : operada por >
+Route "*" -- "1" Airport : origem >
+Route "*" -- "1" Airport : destino >
+Receiver "1" -- "*" Coverage : alcance medido em >
+Position "*" ..> Coverage : alimenta >
+Alert "*" ..> Aircraft : vigia >
+Favourite "*" ..> Aircraft : marca >
+Airport "1" -- "0..1" Metar : condições >
+@enduml

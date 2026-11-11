@@ -3,15 +3,15 @@ services:
     image: postgres:17
     restart: unless-stopped
     environment:
-      POSTGRES_USER: skytracer
-      POSTGRES_PASSWORD: skytracer
-      POSTGRES_DB: skytracer
+      POSTGRES_USER: ${POSTGRES_USER:?defina POSTGRES_USER no .env}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:?defina POSTGRES_PASSWORD no .env}
+      POSTGRES_DB: ${POSTGRES_DB:?defina POSTGRES_DB no .env}
     ports:
-      - "5432:5432"
+      - "127.0.0.1:5432:5432"   # só acessível na própria máquina
     volumes:
       - pgdata:/var/lib/postgresql/data
     healthcheck:
-      test: ["CMD-SHELL", "pg_isready -U skytracer"]
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER}"]
       interval: 5s
       retries: 10
 
@@ -21,7 +21,7 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
-      DATABASE_URL: postgresql://skytracer:skytracer@db:5432/skytracer
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
@@ -32,7 +32,7 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
-      DATABASE_URL: postgresql://skytracer:skytracer@db:5432/skytracer
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     depends_on:
       db:
         condition: service_healthy
@@ -43,9 +43,9 @@ services:
     restart: unless-stopped
     env_file: ../.env
     environment:
-      DATABASE_URL: postgresql://skytracer:skytracer@db:5432/skytracer
+      DATABASE_URL: postgresql://${POSTGRES_USER}:${POSTGRES_PASSWORD}@db:5432/${POSTGRES_DB}
     ports:
-      - "8000:8000"
+      - "127.0.0.1:8000:8000"   # exposta ao exterior só através do proxy HTTPS
     depends_on:
       db:
         condition: service_healthy

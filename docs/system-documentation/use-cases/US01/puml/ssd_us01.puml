@@ -1,0 +1,16 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Temporizador" as T
+participant ":Sistema" as S
+participant "dump1090\n<<externo>>" as D
+
+loop a cada POLL_INTERVAL_SECONDS
+  T -> S : lerRecetor()
+  activate S
+  S -> D : GET aircraft.json
+  D --> S : { now, messages, aircraft[] }
+  S --> T : snapshot normalizado
+  deactivate S
+end
+@enduml

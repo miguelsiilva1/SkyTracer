@@ -1,0 +1,15 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : consultarAviao(hex)
+activate S
+alt avião conhecido
+  S --> U : matrícula, modelo, fabricante, operador,\nfoto (url, fotógrafo, ligação), estado atual
+else desconhecido
+  S --> U : erro "Avião desconhecido"
+end
+deactivate S
+@enduml

@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : alternarVista3D()
+activate S
+S --> U : mapa 3D com aviões à respetiva altitude
+deactivate S
+@enduml

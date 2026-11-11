@@ -1,0 +1,19 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant "App Expo\n(Sprint 2)" as App
+participant "aircraft_track()" as API
+database "PostgreSQL" as DB
+
+U -> App : seleciona avião
+App -> API : GET /aircraft/{hex}/track?minutes=60
+activate API
+API -> API : valida hex e 1 <= minutes <= 1440
+API -> DB : TRACK: SELECT ... FROM position\nWHERE hex = ? AND ts > now() - 60 min\nORDER BY ts
+note right of DB : índice (hex, ts DESC)
+DB --> API : posições
+API --> App : 200 [ {ts, lat, lon, altitude_ft, ...} ]
+deactivate API
+App -> U : desenha linha (cor por altitude)
+@enduml

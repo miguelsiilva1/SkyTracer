@@ -1,0 +1,19 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Temporizador" as T
+participant ":Sistema" as S
+
+loop a cada leitura (US01)
+  T -> S : guardarLeitura(snapshot)
+  activate S
+  S --> T : nº de posições guardadas
+  deactivate S
+end
+loop a cada 24 h
+  T -> S : aplicarRetenção(RETENTION_DAYS)
+  activate S
+  S --> T : nº de linhas apagadas
+  deactivate S
+end
+@enduml

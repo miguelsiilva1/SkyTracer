@@ -1,0 +1,14 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : selecionarAviao(hex)
+activate S
+S --> U : painel: callsign, matrícula, modelo, altitude,\nvelocidade, squawk, rota, foto
+deactivate S
+loop enquanto o painel estiver aberto
+  S --> U : altitude, velocidade, squawk atualizados
+end
+@enduml

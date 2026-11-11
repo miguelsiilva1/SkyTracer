@@ -1,0 +1,60 @@
+@startuml UCD
+skinparam monochrome true
+skinparam shadowing false
+left to right direction
+
+title SkyTracer — Diagrama de Casos de Uso
+
+actor "Utilizador" as U
+actor "Avaliador" as A
+actor "Temporizador" as T
+actor "dump1090\n<<sistema externo>>" as D
+actor "adsbdb / planespotters\n<<sistemas externos>>" as E
+
+U <|-- A
+
+rectangle "SkyTracer" {
+  usecase "US01 Ler aircraft.json" as UC01
+  usecase "US02 Guardar posições" as UC02
+  usecase "US05 Enriquecer com cache" as UC05
+  usecase "US03 Ver companhia e rota" as UC03
+  usecase "US04 Ver foto, matrícula e modelo" as UC04
+  usecase "US06 Ver mapa em tempo real" as UC06
+  usecase "US07 Ver detalhe do avião" as UC07
+  usecase "US08 Filtrar aviões" as UC08
+  usecase "US09 Pesquisar avião" as UC09
+  usecase "US10 Ver rasto" as UC10
+  usecase "US11 Ver METAR" as UC11
+  usecase "US12 Replay" as UC12
+  usecase "US13 Configurar alertas" as UC13
+  usecase "US14 Chegadas e partidas LPPR" as UC14
+  usecase "US15 Estatísticas diárias" as UC15
+  usecase "US16 Vista 3D" as UC16
+  usecase "US17 Mapa de cobertura" as UC17
+  usecase "US18 Usar em web, Android e iOS" as UC18
+  usecase "US19 Guardar favoritos" as UC19
+}
+
+T --> UC01
+T --> UC02
+T --> UC05
+UC01 --> D
+UC05 --> E
+
+U --> UC03
+U --> UC04
+U --> UC06
+U --> UC07
+U --> UC08
+U --> UC09
+U --> UC10
+U --> UC11
+U --> UC12
+U --> UC13
+U --> UC14
+U --> UC15
+U --> UC16
+U --> UC18
+U --> UC19
+A --> UC17
+@enduml

@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : consultarMovimentos(LPPR)
+activate S
+S --> U : chegadas e partidas
+deactivate S
+@enduml

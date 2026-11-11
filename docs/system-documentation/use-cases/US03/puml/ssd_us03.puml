@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : consultarAvioesVisiveis()
+activate S
+S --> U : lista de aviões com companhia,\norigem e destino
+deactivate S
+@enduml

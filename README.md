@@ -1,113 +1,153 @@
-# SkyTracer ✈
+# SkyTracer
 
-Radar de tráfego aéreo em tempo real para a região do Porto, construído a partir dos dados Modo S / ADS-B do recetor **dump1090** da unidade curricular de STAER (ISEP / DEE), e enriquecido com fontes públicas gratuitas (rotas, fotos, matrículas, meteorologia).
+Sistema de visualização de tráfego aéreo em tempo real para a região do Porto, desenvolvido no âmbito da unidade curricular de Sistemas de Telecomunicações Aeronáuticas (STAER), ISEP / DEE.
 
-Objetivo: uma experiência ao estilo do FlightRadar24 — incluindo funcionalidades que lá são pagas (histórico/replay, alertas, estatísticas, mapa de cobertura) — de forma gratuita.
+O sistema recolhe as mensagens Modo S / ADS-B descodificadas pelo recetor **dump1090** disponibilizado pela unidade curricular, persiste-as numa base de dados e enriquece-as com informação de fontes públicas e gratuitas (rotas, fotografias, matrículas e meteorologia). O objetivo é disponibilizar, sem custos, funcionalidades que em serviços comerciais como o FlightRadar24 são pagas: histórico e *replay*, alertas, estatísticas e mapa de cobertura do recetor.
 
-## Arquitetura
+## Índice
+
+1. [Arquitetura](#1-arquitetura)
+2. [Estrutura do repositório](#2-estrutura-do-repositório)
+3. [Fonte de dados](#3-fonte-de-dados)
+4. [Serviços](#4-serviços)
+5. [Execução em ambiente local](#5-execução-em-ambiente-local)
+6. [Testes](#6-testes)
+7. [Implementação em produção](#7-implementação-em-produção)
+8. [Gestão do projeto e documentação](#8-gestão-do-projeto-e-documentação)
+
+## 1. Arquitetura
 
 ```
- dump1090 (professor)          APIs públicas (adsbdb, planespotters, OurAirports, METAR)
+ dump1090 (UC STAER)           APIs públicas (adsbdb, planespotters, OurAirports, METAR)
         │  aircraft.json                 │
         ▼                                ▼
- ┌──────────────┐   insere    ┌──────────────┐
- │  collector   │ ──────────▶ │  PostgreSQL  │
- │  (Python)    │             └──────┬───────┘
- └──────────────┘                    │
-                              ┌──────▼───────┐   REST + WebSocket
-                              │  API FastAPI │ ───────────────────┐
-                              └──────────────┘                    ▼
-                                                    ┌──────────────────────────┐
-                                                    │ app Expo (React Native)  │
-                                                    │ web · Android · iOS      │
+ ┌──────────────┐            ┌──────────────┐
+ │  collector   │            │   enricher   │
+ └──────┬───────┘            └──────┬───────┘
+        │ escrita                   │ escrita
+        ▼                           ▼
+              ┌──────────────┐
+              │  PostgreSQL  │
+              └──────┬───────┘
+                     │ leitura
+              ┌──────▼───────┐   REST + WebSocket   ┌──────────────────────────┐
+              │  API FastAPI │ ───────────────────▶ │ App Expo (React Native)  │
+              └──────────────┘                      │ web · Android · iOS      │
                                                     └──────────────────────────┘
 ```
 
+Os três serviços de backend são processos independentes que comunicam exclusivamente através da base de dados. Em consequência, a API responde sempre a partir de dados locais e mantém-se disponível (último estado conhecido e histórico) mesmo que o recetor ou as APIs externas falhem.
+
+## 2. Estrutura do repositório
+
 | Pasta | Conteúdo |
 |---|---|
-| `backend/` | Python: `collector` (polling do dump1090), `enrichment` (worker de enriquecimento), `api` (FastAPI) e `db` (migrações SQL) |
-| `app/` | App Expo / React Native (web + Android + iOS), mapas com MapLibre |
-| `infra/` | `docker-compose.yml`, schema da base de dados, configuração de deploy |
-| `docs/` | Backlog Scrum, arquitetura, decisões, relatório |
-| `.github/workflows/` | CI/CD (testes, deploy da web e do backend) |
+| `backend/` | Código Python: `collector` (leitura do dump1090), `enrichment` (enriquecimento e retenção), `api` (FastAPI) e `db` (migrações SQL); testes em `backend/tests/` |
+| `app/` | Aplicação Expo / React Native (web, Android e iOS), com mapas MapLibre |
+| `infra/` | `docker-compose.yml` com a base de dados e os serviços |
+| `docs/` | Backlog, documentação do sistema (glossário, modelo de domínio, diagrama de classes, casos de uso, SSD e SD) |
+| `.github/workflows/` | Integração contínua (lint e testes) |
 
-## Fonte de dados obrigatória
+## 3. Fonte de dados
 
-`https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json` (dump1090-mutability). Todas as posições dos aviões vêm desta fonte; as APIs externas só **enriquecem** os aviões que o recetor vê.
+Todas as posições provêm exclusivamente do recetor da unidade curricular:
 
-## Serviços
+`https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json` (dump1090-mutability)
 
-| Serviço | Comando | O que faz |
+As APIs externas são utilizadas apenas para **enriquecer** as aeronaves efetivamente recebidas por este recetor.
+
+## 4. Serviços
+
+| Serviço | Comando | Responsabilidade |
 |---|---|---|
-| `collector` | `python -m skytracer.collector` | Lê o `aircraft.json` a cada segundo. Atualiza `aircraft_live` (estado atual) a cada leitura, guarda em `position` no máximo uma posição a cada 5 s por avião (só posições recentes, `seen_pos` ≤ 60 s) e um resumo do recetor em `receiver_snapshot` a cada 10 s. |
-| `enricher` | `python -m skytracer.enrichment` | Para cada avião visto, consulta [adsbdb](https://www.adsbdb.com) (matrícula, modelo, operador, rota) e [planespotters.net](https://www.planespotters.net) (foto, com crédito ao fotógrafo). Tem limite de 1 pedido/s por API, retry com backoff exponencial e cache na BD (aeronave 30 dias, rota 7 dias, "não encontrado" também em cache, erros repetidos ao fim de 1 h). Faz também a limpeza diária de retenção. |
-| `api` | `uvicorn skytracer.api.main:app` | REST + WebSocket, sempre a partir da BD local. Se o dump1090 falhar, continua a servir o último estado e o histórico. |
+| `collector` | `python -m skytracer.collector` | Lê o `aircraft.json` a cada segundo. Atualiza o estado atual de cada aeronave (`aircraft_live`) em todas as leituras; guarda no máximo uma posição a cada 5 s por aeronave (`position`), apenas para posições com idade `seen_pos` ≤ 60 s; e regista um resumo do recetor (`receiver_snapshot`) a cada 10 s. |
+| `enricher` | `python -m skytracer.enrichment` | Para cada aeronave recebida, consulta o [adsbdb](https://www.adsbdb.com) (matrícula, modelo, operador e rota) e o [planespotters.net](https://www.planespotters.net) (fotografia, com crédito ao autor). Limita os pedidos a 1 por segundo por API, repete com *backoff* exponencial e guarda os resultados em cache na base de dados (aeronave: 30 dias; rota: 7 dias; respostas "não encontrado" também ficam em cache; erros são repetidos ao fim de 1 h). Executa ainda a limpeza diária de retenção. |
+| `api` | `uvicorn skytracer.api.main:app` | Disponibiliza a interface REST e WebSocket, sempre a partir da base de dados local. |
 
-Todos os serviços aplicam as migrações (`backend/skytracer/db/migrations/NNN_*.sql`) ao arrancar. Para as aplicar à mão: `python -m skytracer.db.migrate`.
+Todos os serviços aplicam as migrações pendentes (`backend/skytracer/db/migrations/NNN_*.sql`) no arranque. A aplicação manual faz-se com `python -m skytracer.db.migrate`.
 
-### API
+### 4.1 Interface da API
 
 | Endpoint | Descrição |
 |---|---|
-| `GET /aircraft/live?max_age_seconds=60` | Aviões com posição recente, já com enriquecimento (matrícula, modelo, foto) e rota (origem/destino) |
-| `GET /aircraft/{hex}` | Dados de um avião e o seu estado atual (`live`, `null` se não estiver a ser visto) |
-| `GET /aircraft/{hex}/track?minutes=60` | Rasto: posições guardadas nos últimos N minutos (máx. 1440) |
-| `WS /ws/live` | Envia a cada ~1 s `{"ts": ..., "aircraft": [...]}`, no mesmo formato do `/aircraft/live` |
+| `GET /health` | Verificação do estado do serviço |
+| `GET /aircraft/live?max_age_seconds=60` | Aeronaves com posição recente, incluindo enriquecimento (matrícula, modelo, fotografia) e rota (origem e destino) |
+| `GET /aircraft/{hex}` | Dados de uma aeronave e o seu estado atual (`live`, `null` se não estiver a ser recebida) |
+| `GET /aircraft/{hex}/track?minutes=60` | Rasto: posições guardadas nos últimos *N* minutos (máximo 1440) |
+| `WS /ws/live` | Envia o estado atual na ligação e depois a cada ~1 s, no formato `{"ts": ..., "aircraft": [...]}`, idêntico ao de `/aircraft/live` |
 
-Documentação interativa em `http://127.0.0.1:8000/docs`.
+A documentação interativa (OpenAPI) está disponível em `http://127.0.0.1:8000/docs`.
 
-### Retenção dos dados
+### 4.2 Política de retenção
 
-| Tabela | Frequência | Guardado durante |
+| Tabela | Frequência de escrita | Período de retenção |
 |---|---|---|
-| `aircraft_live` | 1 linha por avião, atualizada a cada segundo (`UNLOGGED`) | 5 min sem mensagens (`LIVE_EXPIRY_SECONDS`) |
-| `position` | ≤ 1 por avião a cada 5 s (`POSITION_MIN_INTERVAL_SECONDS`), ~100 MB/dia em hora de ponta | 30 dias (`RETENTION_DAYS`) |
+| `aircraft_live` | 1 linha por aeronave, atualizada a cada segundo (`UNLOGGED`) | 5 min sem mensagens (`LIVE_EXPIRY_SECONDS`) |
+| `position` | ≤ 1 por aeronave a cada 5 s (`POSITION_MIN_INTERVAL_SECONDS`); cerca de 100 MB/dia em hora de ponta | 30 dias (`RETENTION_DAYS`) |
 | `receiver_snapshot` | 1 a cada 10 s (`SNAPSHOT_INTERVAL_SECONDS`) | 30 dias (`RETENTION_DAYS`) |
-| `aircraft`, `flight_route` | cache do enriquecimento | sem limite (pequenas; renovadas pelo TTL) |
+| `aircraft`, `flight_route` | Cache do enriquecimento | Sem limite (tabelas pequenas, renovadas segundo o TTL) |
 
-O mapa de cobertura (US17) vai usar uma tabela agregada (alcance máximo por direção) que não é apagada.
+O mapa de cobertura (US17) utilizará uma tabela agregada (alcance máximo por direção) que não é abrangida pela retenção.
 
-## Arrancar em local
+## 5. Execução em ambiente local
+
+**Pré-requisitos:** Python ≥ 3.11 e Docker.
 
 ```bash
-# 1. Base de dados
-docker compose -f infra/docker-compose.yml up -d db
+# 1. Configuração e base de dados
+cp .env.example .env
+docker compose --env-file .env -f infra/docker-compose.yml up -d db
 
 # 2. Backend
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-cp ../.env.example ../.env
-python -m skytracer.collector          # inicia o polling
-uvicorn skytracer.api.main:app --reload  # API em http://localhost:8000/docs
+python -m skytracer.collector             # recolha de dados
+python -m skytracer.enrichment            # enriquecimento (noutro terminal)
+uvicorn skytracer.api.main:app --reload   # API em http://localhost:8000/docs
 ```
 
-Ou tudo de uma vez (BD, collector, enricher e API): `cp .env.example .env && docker compose -f infra/docker-compose.yml up --build`.
+Em alternativa, a base de dados e os três serviços podem ser iniciados em conjunto:
 
-### Testes
+```bash
+docker compose --env-file .env -f infra/docker-compose.yml up --build
+```
+
+### 5.1 Configuração
+
+A configuração é feita por variáveis de ambiente, documentadas em [`.env.example`](.env.example). O ficheiro `.env` não é versionado.
+
+- As credenciais da base de dados (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) são obrigatórias: o Docker Compose recusa-se a arrancar se faltarem. A opção `--env-file .env` é necessária porque o ficheiro de Compose se encontra em `infra/`.
+- Em produção deve ser usada uma password própria, apenas com letras e números (por exemplo, gerada com `openssl rand -hex 24`), refletida também em `DATABASE_URL`.
+- A base de dados (5432) e a API (8000) ficam acessíveis apenas na própria máquina (`127.0.0.1`); o acesso externo à API é feito através de um *reverse proxy* HTTPS.
+
+## 6. Testes
 
 ```bash
 cd backend
 ruff check . && pytest -q
 ```
 
-Os testes marcados com `db` precisam de um PostgreSQL de teste e são saltados se não houver um:
+Os testes marcados com `db` requerem uma instância PostgreSQL de teste e são ignorados quando esta não está disponível:
 
 ```bash
 docker run -d --name skytracer-test-db -p 5433:5432 \
   -e POSTGRES_USER=skytracer -e POSTGRES_PASSWORD=skytracer -e POSTGRES_DB=skytracer_test postgres:17
 ```
 
-(ou definir `TEST_DATABASE_URL`). No CI corre um serviço `postgres:17`.
+O endereço pode ser alterado com a variável `TEST_DATABASE_URL`. Na integração contínua é utilizado um serviço `postgres:17`.
 
-## Deploy
+## 7. Implementação em produção
 
-| Serviço | Onde |
+| Componente | Plataforma |
 |---|---|
-| collector + API + PostgreSQL | VM Oracle Cloud Always Free (Docker Compose) |
-| app web (export estático do Expo) | GitHub Pages |
+| collector, enricher, API e PostgreSQL | VM Oracle Cloud Always Free (Docker Compose) |
+| Aplicação web (exportação estática do Expo) | GitHub Pages |
 | CI/CD | GitHub Actions |
 
-## Gestão
+## 8. Gestão do projeto e documentação
 
-Scrum, sprints de 2 semanas até à entrega (1.ª semana de janeiro 2027). Ver [`docs/backlog.md`](docs/backlog.md).
+O projeto segue a metodologia Scrum, com sprints de duas semanas até à entrega final (primeira semana de janeiro de 2027).
+
+- [Product backlog e plano de sprints](docs/backlog.md)
+- [Documentação do sistema](docs/system-documentation/README.md): glossário, modelo de domínio, diagrama de classes, diagrama de casos de uso e, por user story, critérios de aceitação, SSD e SD.

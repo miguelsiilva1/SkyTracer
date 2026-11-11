@@ -1,0 +1,202 @@
+@startuml CD
+skinparam classAttributeIconSize 0
+skinparam monochrome true
+skinparam shadowing false
+skinparam packageStyle rectangle
+hide empty members
+
+title SkyTracer — Diagrama de Classes (backend)
+
+package "skytracer.config" {
+  class Settings <<BaseSettings>> {
+    + dump1090_url : str
+    + poll_interval_seconds : float
+    + position_min_interval_seconds : float
+    + snapshot_interval_seconds : float
+    + live_expiry_seconds : int
+    + retention_days : int
+    + database_url : str
+    + api_cors_origins : str
+    + ws_interval_seconds : float
+    + http_user_agent : str
+    + adsbdb_url : str
+    + planespotters_url : str
+    + enrich_requests_per_second : float
+    + enrich_interval_seconds : float
+    + aircraft_ttl_days : int
+    + route_ttl_days : int
+  }
+}
+
+package "skytracer.collector" {
+  class AircraftState <<dataclass, frozen>> {
+    + hex : str
+    + ts : datetime
+    + pos_ts : datetime | None
+    + callsign : str | None
+    + lat : float | None
+    + lon : float | None
+    + altitude_ft : int | None
+    + on_ground : bool
+    + speed_kt : float | None
+    + track_deg : float | None
+    + vert_rate_fpm : int | None
+    + squawk : str | None
+    + rssi_dbfs : float | None
+    + mlat : bool
+    + seen_s : float | None
+    + seen_pos_s : float | None
+    + category : str | None
+    + nucp : int | None
+    --
+    + has_position() : bool <<property>>
+    + has_fresh_position() : bool <<property>>
+  }
+  class Snapshot <<dataclass, frozen>> {
+    + now : datetime
+    + messages_total : int | None
+    + aircraft : list[AircraftState]
+  }
+  class dump1090 <<module>> {
+    + MAX_POSITION_AGE_S = 60.0
+    --
+    + parse_snapshot(payload : dict) : Snapshot
+    + parse_aircraft(raw : dict, now : datetime) : AircraftState | None
+  }
+  class CollectorState <<dataclass>> {
+    + last_position : dict[str, datetime]
+    + last_snapshot : datetime | None
+  }
+  class collector_main <<module>> {
+    + should_store_position(prev, pos_ts) : bool
+    + store(conn, snap : Snapshot, state : CollectorState) : int
+    + run(http, conn, state) : None
+    + main() : None
+  }
+}
+
+package "skytracer.enrichment" {
+  class EnrichmentError <<Exception>>
+  class RateLimitedClient {
+    - _client : httpx.Client
+    - _min_interval : float
+    - _max_retries : int
+    - _backoff_base : float
+    - _backoff_max : float
+    - _sleep : Callable
+    - _clock : Callable
+    - _next_allowed : float
+    --
+    + get_json(url : str) : Any | None
+    - _throttle() : None
+    - _backoff(attempt : int, resp) : float
+  }
+  class AircraftInfo <<dataclass, frozen>> {
+    + registration : str | None
+    + icao_type : str | None
+    + type_name : str | None
+    + manufacturer : str | None
+    + operator : str | None
+    + country : str | None
+  }
+  class Airport <<dataclass, frozen>> {
+    + icao : str | None
+    + iata : str | None
+    + name : str | None
+    + lat : float | None
+    + lon : float | None
+  }
+  class RouteInfo <<dataclass, frozen>> {
+    + airline_name : str | None
+    + airline_icao : str | None
+    + airline_iata : str | None
+    + origin : Airport
+    + dest : Airport
+  }
+  class Photo <<dataclass, frozen>> {
+    + url : str
+    + photographer : str | None
+    + link : str | None
+  }
+  class adsbdb <<module>> {
+    + fetch_aircraft(client, base_url, hex) : AircraftInfo | None
+    + fetch_route(client, base_url, callsign) : RouteInfo | None
+  }
+  class planespotters <<module>> {
+    + fetch_photo(client, base_url, hex) : Photo | None
+  }
+  class Clients <<dataclass>> {
+    + adsbdb : RateLimitedClient
+    + planespotters : RateLimitedClient
+  }
+  class worker <<module>> {
+    + enrich_aircraft(conn, clients, hex) : str
+    + enrich_route(conn, clients, callsign) : str
+    + run_once(conn, clients, limit = 20) : tuple[int, int]
+    + purge_old_data(conn, days : int) : int
+  }
+}
+
+package "skytracer.api" {
+  class LiveBroadcaster {
+    + pool : AsyncConnectionPool
+    + clients : set[WebSocket]
+    --
+    + fetch() : str <<async>>
+    + run() : None <<async>>
+    - _send(ws, message : str) : None <<async>>
+  }
+  class api_main <<module>> {
+    + app : FastAPI
+    --
+    + health() : dict
+    + live_aircraft(max_age_seconds : int) : list[dict]
+    + aircraft_detail(hex : str) : dict
+    + aircraft_track(hex : str, minutes : int) : list[dict]
+    + ws_live(ws : WebSocket) : None
+  }
+  class queries <<module>> {
+    + LIVE : str
+    + AIRCRAFT : str
+    + AIRCRAFT_LIVE : str
+    + TRACK : str
+  }
+}
+
+package "skytracer.db" {
+  class migrate <<module>> {
+    + MIGRATIONS_DIR : Path
+    + LOCK_ID : int
+    --
+    + pending(applied : set[str]) : list[Path]
+    + migrate(dsn : str | None) : list[str]
+  }
+}
+
+Snapshot "1" *-- "*" AircraftState
+dump1090 ..> Snapshot : cria
+collector_main ..> dump1090 : usa
+collector_main ..> CollectorState : atualiza
+collector_main ..> migrate : no arranque
+
+RouteInfo "1" *-- "2" Airport : origin / dest
+adsbdb ..> AircraftInfo : cria
+adsbdb ..> RouteInfo : cria
+planespotters ..> Photo : cria
+adsbdb ..> RateLimitedClient : usa
+planespotters ..> RateLimitedClient : usa
+RateLimitedClient ..> EnrichmentError : lança
+Clients "1" o-- "2" RateLimitedClient
+worker ..> Clients : usa
+worker ..> adsbdb : usa
+worker ..> planespotters : usa
+
+api_main "1" *-- "1" LiveBroadcaster : app.state.live
+api_main ..> queries : usa
+LiveBroadcaster ..> queries : LIVE
+
+collector_main ..> Settings
+worker ..> Settings
+api_main ..> Settings
+migrate ..> Settings
+@enduml

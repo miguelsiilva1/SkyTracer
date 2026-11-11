@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : verRasto(hex, minutos)
+activate S
+S --> U : posições ordenadas (ts, lat, lon, altitude, ...)
+deactivate S
+@enduml
