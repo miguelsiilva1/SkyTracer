@@ -1,0 +1,15 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : abrirMapa()
+activate S
+S --> U : aviões visíveis (posição, rumo, altitude, ...)
+loop a cada ~1 s, enquanto o mapa estiver aberto
+  S --> U : estado atualizado dos aviões
+end
+U -> S : fecharMapa()
+deactivate S
+@enduml

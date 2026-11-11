@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : verEspacoAereo(instante)
+activate S
+S --> U : aviões e posições nesse instante
+deactivate S
+@enduml

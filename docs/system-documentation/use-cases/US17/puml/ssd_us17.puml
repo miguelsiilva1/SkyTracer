@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Avaliador" as U
+participant ":Sistema" as S
+
+U -> S : consultarCobertura(faixaAltitude)
+activate S
+S --> U : alcance máximo e RSSI médio por azimute
+deactivate S
+@enduml

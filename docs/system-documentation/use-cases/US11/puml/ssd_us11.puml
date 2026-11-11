@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : consultarMeteo(aeroporto)
+activate S
+S --> U : vento, visibilidade, instante da observação
+deactivate S
+@enduml

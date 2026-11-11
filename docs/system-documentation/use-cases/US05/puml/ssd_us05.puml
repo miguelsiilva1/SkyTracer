@@ -1,0 +1,18 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Temporizador" as T
+participant ":Sistema" as S
+participant "adsbdb / planespotters\n<<externos>>" as E
+
+loop a cada ENRICH_INTERVAL_SECONDS
+  T -> S : enriquecerPendentes()
+  activate S
+  loop para cada aeronave/callsign sem cache válida
+    S -> E : pedido (<= 1/s por API)
+    E --> S : dados | 404 | erro
+  end
+  S --> T : (aviões, rotas) processados
+  deactivate S
+end
+@enduml

@@ -1,0 +1,34 @@
+@startuml
+autonumber
+skinparam monochrome true
+participant "fetch_*()" as F
+participant "RateLimitedClient\nget_json(url)" as RL
+participant "httpx.Client" as H
+participant "API externa" as Ext
+
+F -> RL : get_json(url)
+activate RL
+loop tentativa = 0 .. max_retries (4)
+  RL -> RL : _throttle()
+  note right
+    espera next_allowed - clock()
+    next_allowed = clock() + 1/rps
+  end note
+  RL -> H : get(url)
+  H -> Ext : GET
+  Ext --> H : resposta
+  H --> RL : resp
+  alt 404
+    RL --> F : None (cache negativa)
+  else 2xx
+    RL --> F : resp.json()
+  else outro 4xx / JSON inválido
+    RL --> F : raise EnrichmentError
+  else 429 / 5xx / TransportError
+    RL -> RL : delay = Retry-After\nou min(base * 2^tentativa, 60)
+    RL -> RL : sleep(delay)
+  end
+end
+RL --> F : raise EnrichmentError("falhou após 5 tentativas")
+deactivate RL
+@enduml

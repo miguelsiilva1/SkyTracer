@@ -1,0 +1,43 @@
+@startuml
+autonumber
+skinparam monochrome true
+participant "run()" as Run
+participant "store()" as Store
+participant "CollectorState" as State
+database "PostgreSQL" as DB
+
+Run -> Store : store(conn, snap, state)
+activate Store
+loop para cada aeronave do snapshot
+  Store -> State : last_position.get(hex)
+  State --> Store : prev
+  Store -> Store : has_fresh_position\nand should_store_position(prev, pos_ts)
+end
+
+Store -> DB : executemany(UPSERT_AIRCRAFT)
+note right: GREATEST(last_seen),\nCOALESCE(category)
+Store -> DB : executemany(UPSERT_LIVE)
+Store -> DB : DELETE aircraft_live\nWHERE seen_at < now - 300 s
+Store -> DB : executemany(INSERT_POSITION)
+
+opt passaram >= SNAPSHOT_INTERVAL_SECONDS
+  Store -> DB : INSERT receiver_snapshot\nON CONFLICT DO NOTHING
+  Store -> State : last_snapshot = now
+end
+
+alt sucesso
+  Store -> DB : COMMIT
+  Store -> State : last_position[hex] = pos_ts
+  Store --> Run : nº de posições
+else psycopg.Error
+  Store --> Run : exceção
+  Run -> DB : ROLLBACK
+end
+deactivate Store
+
+== Retenção (worker de enriquecimento, a cada 24 h) ==
+participant "purge_old_data()" as Purge
+Purge -> DB : DELETE position WHERE ts < now - 30 dias
+Purge -> DB : DELETE receiver_snapshot WHERE ts < now - 30 dias
+Purge -> DB : COMMIT
+@enduml

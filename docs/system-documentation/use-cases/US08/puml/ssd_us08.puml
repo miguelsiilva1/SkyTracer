@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : filtrarAvioes(origem, destino, altMin, altMax, companhia, tipo)
+activate S
+S --> U : aviões visíveis que cumprem todos os filtros
+deactivate S
+@enduml

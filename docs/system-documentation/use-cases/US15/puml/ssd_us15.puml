@@ -1,0 +1,11 @@
+@startuml
+autonumber
+skinparam monochrome true
+actor "Utilizador" as U
+participant ":Sistema" as S
+
+U -> S : consultarEstatisticas(dia)
+activate S
+S --> U : top companhias, mais alto, mais rápido, aviões por hora
+deactivate S
+@enduml
