@@ -94,14 +94,14 @@ O mapa de cobertura (US17) utilizará uma tabela agregada (alcance máximo por d
 **Pré-requisitos:** Python ≥ 3.11 e Docker.
 
 ```bash
-# 1. Base de dados
-docker compose -f infra/docker-compose.yml up -d db
+# 1. Configuração e base de dados
+cp .env.example .env
+docker compose --env-file .env -f infra/docker-compose.yml up -d db
 
 # 2. Backend
 cd backend
 python -m venv .venv && source .venv/bin/activate   # Windows: .venv\Scripts\activate
 pip install -e ".[dev]"
-cp ../.env.example ../.env
 python -m skytracer.collector             # recolha de dados
 python -m skytracer.enrichment            # enriquecimento (noutro terminal)
 uvicorn skytracer.api.main:app --reload   # API em http://localhost:8000/docs
@@ -110,11 +110,16 @@ uvicorn skytracer.api.main:app --reload   # API em http://localhost:8000/docs
 Em alternativa, a base de dados e os três serviços podem ser iniciados em conjunto:
 
 ```bash
-cp .env.example .env
-docker compose -f infra/docker-compose.yml up --build
+docker compose --env-file .env -f infra/docker-compose.yml up --build
 ```
 
-A configuração é feita por variáveis de ambiente, documentadas em [`.env.example`](.env.example).
+### 5.1 Configuração
+
+A configuração é feita por variáveis de ambiente, documentadas em [`.env.example`](.env.example). O ficheiro `.env` não é versionado.
+
+- As credenciais da base de dados (`POSTGRES_USER`, `POSTGRES_PASSWORD`, `POSTGRES_DB`) são obrigatórias: o Docker Compose recusa-se a arrancar se faltarem. A opção `--env-file .env` é necessária porque o ficheiro de Compose se encontra em `infra/`.
+- Em produção deve ser usada uma password própria, apenas com letras e números (por exemplo, gerada com `openssl rand -hex 24`), refletida também em `DATABASE_URL`.
+- A base de dados (5432) e a API (8000) ficam acessíveis apenas na própria máquina (`127.0.0.1`); o acesso externo à API é feito através de um *reverse proxy* HTTPS.
 
 ## 6. Testes
 
