@@ -1,0 +1,78 @@
+@startuml use_case_diagram
+left to right direction
+skinparam shadowing false
+skinparam packageStyle rectangle
+skinparam nodesep 15
+skinparam ranksep 90
+
+title SkyTracer — Use Case Diagram
+
+' Declaration order is tuned so that Graphviz renders epics and
+' use cases top-down in numerical order. Re-check the SVG after
+' adding or reordering elements.
+
+actor "Evaluator" as A
+actor "User" as U
+U <|-- A
+
+rectangle "SkyTracer" {
+  package "E5 — Cross-platform application" {
+    usecase "US19 Save favourites" as UC19
+    usecase "US18 Use on web, Android and iOS" as UC18
+  }
+  package "E4 — Coverage analysis" {
+    usecase "US17 Coverage map" as UC17
+  }
+  package "E3 — Premium features" {
+    usecase "US16 3D view" as UC16
+    usecase "US15 Daily statistics" as UC15
+    usecase "US14 LPPR arrivals and departures" as UC14
+    usecase "US13 Configure alerts" as UC13
+    usecase "US12 Replay" as UC12
+  }
+  package "E2 — Map and visualisation" {
+    usecase "US07 View aircraft details" as UC07
+    usecase "US06 View live map" as UC06
+    usecase "US11 View METAR" as UC11
+    usecase "US10 View track" as UC10
+    usecase "US09 Search aircraft" as UC09
+    usecase "US08 Filter aircraft" as UC08
+  }
+  package "E1 — Data collection and enrichment" {
+    usecase "US01 Read aircraft.json" as UC01
+    usecase "US03 View airline and route" as UC03
+    usecase "US04 View photo, registration and model" as UC04
+    usecase "US02 Store positions" as UC02
+    usecase "US05 Enrich with caching" as UC05
+  }
+}
+
+actor "adsbdb / planespotters\n<<external systems>>" as E
+actor "Timer" as T
+actor "dump1090\n<<external system>>" as D
+
+' Primary actors
+A --> UC17
+U --> UC19
+U --> UC18
+U --> UC16
+U --> UC15
+U --> UC14
+U --> UC13
+U --> UC12
+U --> UC11
+U --> UC10
+U --> UC09
+U --> UC08
+U --> UC07
+U --> UC06
+U --> UC04
+U --> UC03
+
+' Automatic use cases and secondary actors
+UC05 --> E
+UC05 <-- T
+UC02 <-- T
+UC01 <-- T
+UC01 --> D
+@enduml
