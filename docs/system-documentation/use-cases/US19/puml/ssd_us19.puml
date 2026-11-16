@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : marcarFavorito(hex | callsign)
+A -> S : addFavourite(hex | callsign)
 activate S
-S --> U : lista de favoritos atualizada
+S --> A : returns updated list of favourites
 deactivate S
 @enduml

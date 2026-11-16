@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : consultarEstatisticas(dia)
+A -> S : getDailyStatistics(day)
 activate S
-S --> U : top companhias, mais alto, mais rápido, aviões por hora
+S --> A : returns top airlines, highest and fastest aircraft, aircraft per hour
 deactivate S
 @enduml

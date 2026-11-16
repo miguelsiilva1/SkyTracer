@@ -1,10 +1,10 @@
 # app — Expo (React Native)
 
-Uma só base de código para **web, Android e iOS**.
+A single codebase for **web, Android and iOS**.
 
-## Criar o projeto (Sprint 0)
+## Project setup (Sprint 0)
 
-Na raiz do repositório:
+From the repository root:
 
 ```bash
 npx create-expo-app@latest app --template default
@@ -13,9 +13,9 @@ npx expo install react-dom react-native-web @expo/metro-runtime
 npm install maplibre-gl @maplibre/maplibre-react-native
 ```
 
-## Mapa por plataforma
+## Platform-specific map
 
-O Expo escolhe o ficheiro certo automaticamente:
+Expo selects the appropriate file automatically:
 
 ```
 components/
@@ -23,12 +23,12 @@ components/
   Map.native.tsx   → @maplibre/maplibre-react-native (Android/iOS)
 ```
 
-O resto da app (painéis, filtros, chamadas à API) é partilhado.
+The rest of the application (panels, filters, API calls) is shared.
 
-> Nota: `@maplibre/maplibre-react-native` usa código nativo, por isso no telemóvel precisas de um *development build* (`npx expo run:android` / `eas build`), não do Expo Go.
+> Note: `@maplibre/maplibre-react-native` relies on native code, so mobile devices require a *development build* (`npx expo run:android` / `eas build`) rather than Expo Go.
 
-## Build web para o GitHub Pages
+## Web build for GitHub Pages
 
 ```bash
-npx expo export --platform web   # gera app/dist/
+npx expo export --platform web   # outputs to app/dist/
 ```

@@ -1,41 +1,40 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
+actor "User" as U
 participant "App Expo\n(Sprint 2)" as App
 participant "ws_live()" as WS
 participant "LiveBroadcaster" as B
 database "PostgreSQL" as DB
 
-U -> App : abrir mapa
+U -> App : open map
 App -> WS : WS connect /ws/live
 activate WS
 WS -> WS : ws.accept()
 WS -> B : fetch()
 B -> DB : LIVE (max_age = 60 s)
-DB --> B : linhas
+DB --> B : rows
 B --> WS : JSON {ts, aircraft[]}
-WS --> App : estado inicial
+WS --> App : initial state
 WS -> B : clients.add(ws)
-App -> U : desenha ícones (rotação = track_deg)
+App -> U : draws icons (rotation = track_deg)
 
-== Ciclo do broadcaster (tarefa única, criada no lifespan) ==
-loop a cada WS_INTERVAL_SECONDS
-  opt existem clientes
+== Broadcaster loop (single task, created in lifespan) ==
+loop every WS_INTERVAL_SECONDS
+  opt clients exist
     B -> DB : LIVE
-    DB --> B : linhas
+    DB --> B : rows
     B -> B : json.dumps(payload)
-    par para cada cliente
+    par for each client
       B -> App : wait_for(send_text(msg), 2 s)
-      alt desligado / lento
+      alt disconnected / slow
         B -> B : clients.discard(ws); ws.close()
       end
     end
   end
 end
-App -> U : atualiza posições
+App -> U : updates positions
 
-== Desligar ==
+== Disconnect ==
 App -> WS : close
 WS -> B : clients.discard(ws)
 deactivate WS

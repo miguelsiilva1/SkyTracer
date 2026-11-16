@@ -1,51 +1,51 @@
-# US06 — Ver os aviões num mapa em tempo real
+# US06 — View aircraft on a real-time map
 
-**Épico:** E2 · **Prioridade:** M · **SP:** 5 · **Estado:** 🟡 backend (WebSocket) no Sprint 1, app no Sprint 2
+**Epic:** E2 · **Priority:** M · **SP:** 5 · **Status:** 🟡 backend (WebSocket) in Sprint 1, app in Sprint 2
 
 ## User Story
 
-> Como utilizador, quero ver os aviões num mapa em tempo real, com ícone orientado pelo rumo.
+> As a user, I want to view aircraft on a real-time map, with icons oriented by track.
 
-## Critérios de Aceitação
+## Acceptance Criteria
 
-- Ao ligar a `WS /ws/live`, o cliente recebe de imediato o estado atual e depois uma mensagem a cada ~1 s (`WS_INTERVAL_SECONDS`).
-- Cada mensagem tem o formato `{"ts": ..., "aircraft": [...]}`, igual ao de `GET /aircraft/live`.
-- Só são enviados aviões com posição recebida há ≤ 60 s.
-- Um cliente lento (envio > 2 s) é desligado sem atrasar os restantes.
-- *(Sprint 2)* A app desenha cada avião no mapa MapLibre com o ícone rodado segundo `track_deg`.
-- *(Sprint 2)* Se a ligação cair, a app volta a ligar automaticamente.
+- Upon connecting to `WS /ws/live`, the client immediately receives the live state and thereafter a message every ~1 s (`WS_INTERVAL_SECONDS`).
+- Each message has the format `{"ts": ..., "aircraft": [...]}`, identical to `GET /aircraft/live`.
+- Only aircraft with a position received ≤ 60 s ago are sent.
+- A slow client (send > 2 s) is disconnected without delaying the others.
+- *(Sprint 2)* The app draws each aircraft on the MapLibre map with its icon rotated according to `track_deg`.
+- *(Sprint 2)* If the connection drops, the app reconnects automatically.
 
-## Pré-condições
+## Preconditions
 
-- A API está ativa e o collector está a alimentar `aircraft_live`.
+- The API is active and the collector is populating `aircraft_live`.
 
-## Pós-condições
+## Postconditions
 
-- O mapa reflete o estado de `aircraft_live` com atraso ≤ ~2 s.
+- The map reflects the state of `aircraft_live` with latency ≤ ~2 s.
 
-## Cenário Principal
+## Main Success Scenario
 
-1. O utilizador abre o mapa.
-2. A app abre uma ligação WebSocket a `/ws/live`.
-3. O sistema envia o estado atual e regista o cliente no *broadcaster*.
-4. A cada segundo, o sistema lê `aircraft_live` **uma única vez** e envia a mesma mensagem a todos os clientes.
-5. A app atualiza a posição e a orientação dos ícones.
+1. The user opens the map.
+2. The app opens a WebSocket connection to `/ws/live`.
+3. The system sends the live state and registers the client with the broadcaster.
+4. Every second, the system reads `aircraft_live` **only once** and sends the same message to all clients.
+5. The app updates the position and orientation of the icons.
 
-## Fluxos Alternativos / Exceções
+## Alternative Flows / Exceptions
 
-| Passo | Condição | Resposta do sistema |
+| Step | Condition | System response |
 |---|---|---|
-| 4 | Cliente desligado ou envio > 2 s | Cliente removido e ligação fechada |
-| 4 | Erro na leitura da BD | Regista o erro; o ciclo continua no segundo seguinte |
-| 4 | dump1090 indisponível | Continua a enviar o último estado conhecido até expirar |
+| 4 | Client disconnected or send > 2 s | Client removed and connection closed |
+| 4 | Database read error | Logs the error; the loop continues in the next second |
+| 4 | dump1090 unavailable | Continues sending the last known state until expired |
 
-## Justificação do Desenho
+## Design Rationale
 
-- **Broadcast único** (`LiveBroadcaster`): o custo na BD é constante (1 consulta/s), independentemente do número de clientes.
-- Sem clientes ligados o ciclo não consulta a BD; por isso o estado inicial é enviado no momento da ligação.
-- `asyncio.wait_for(..., 2 s)` em cada envio isola os clientes lentos.
+- **Single broadcast** (`LiveBroadcaster`): database load is constant (1 query/s), regardless of the number of clients.
+- Without connected clients, the loop does not query the database; therefore, the initial state is sent upon connection.
+- `asyncio.wait_for(..., 2 s)` on each send isolates slow clients.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us06.puml) · ![SSD](svg/ssd_us06.svg)
 - [SD](puml/sd_us06.puml) · ![SD](svg/sd_us06.svg)

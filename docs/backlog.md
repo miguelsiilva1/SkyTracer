@@ -1,84 +1,84 @@
 # Product Backlog — SkyTracer
 
-Gestão em **Scrum**, sprints de 2 semanas. Prioridade MoSCoW (M = must, S = should, C = could). Story points (SP) em Fibonacci — estimativas iniciais, a rever no planning de cada sprint.
+The project is managed with **Scrum** in two-week sprints. Priorities follow the MoSCoW method (M = Must have, S = Should have, C = Could have). Story points (SP) use the Fibonacci scale; they are initial estimates and are reviewed during each sprint planning.
 
-## Épicos
+## 1. Epics
 
-| ID | Épico |
+| ID | Epic |
 |---|---|
-| E1 | Recolha e dados (dump1090 + enriquecimento) |
-| E2 | Mapa e visualização |
-| E3 | Funcionalidades "premium" |
-| E4 | Análise de cobertura e relatório |
-| E5 | App multiplataforma |
+| E1 | Data collection and enrichment (dump1090 and external sources) |
+| E2 | Map and visualisation |
+| E3 | Premium features |
+| E4 | Coverage analysis and reporting |
+| E5 | Cross-platform application |
 
-## User stories
+## 2. User Stories
 
-| ID | Épico | Prio | SP | User story |
+| ID | Epic | Priority | SP | User story |
 |---|---|---|---|---|
-| US01 | E1 | M | 3 | Como sistema, quero ler o `aircraft.json` do dump1090 a cada segundo para ter as posições atualizadas. |
-| US02 | E1 | M | 5 | Como sistema, quero guardar cada posição em PostgreSQL para manter o histórico dos voos. |
-| US03 | E1 | M | 5 | Como utilizador, quero ver a companhia e a rota (origem → destino) de um voo. |
-| US04 | E1 | S | 3 | Como utilizador, quero ver a foto, a matrícula e o modelo do avião. |
-| US05 | E1 | S | 3 | Como sistema, quero guardar em cache os dados de enriquecimento para não abusar das APIs externas. |
-| US06 | E2 | M | 5 | Como utilizador, quero ver os aviões num mapa em tempo real, com ícone orientado pelo rumo. |
-| US07 | E2 | M | 3 | Como utilizador, quero clicar num avião e ver um painel com altitude, velocidade, squawk, rota e foto. |
-| US08 | E2 | M | 5 | Como utilizador, quero filtrar por aeroporto de origem/destino, altitude, companhia e tipo de avião. |
-| US09 | E2 | S | 2 | Como utilizador, quero pesquisar por callsign, matrícula ou hex. |
-| US10 | E2 | S | 3 | Como utilizador, quero ver o rasto que o avião já percorreu. |
-| US11 | E2 | C | 2 | Como utilizador, quero ver informação meteorológica discreta (METAR: vento, visibilidade) no painel do aeroporto e um indicador no mapa. |
-| US12 | E3 | S | 8 | Como utilizador, quero escolher um momento passado numa barra de tempo e ver o espaço aéreo como estava (replay). |
-| US13 | E3 | S | 5 | Como utilizador, quero ativar/desativar e configurar alertas (emergência 7500/7600/7700, avião ou modelo específico, militares). |
-| US14 | E3 | C | 5 | Como utilizador, quero ver as chegadas e partidas do aeroporto do Porto (LPPR). |
-| US15 | E3 | C | 3 | Como utilizador, quero estatísticas diárias (top companhias, avião mais alto/rápido, horas de pico). |
-| US16 | E3 | C | 8 | Como utilizador, quero uma vista 3D dos voos. |
-| US17 | E4 | M | 5 | Como avaliador, quero um mapa de cobertura do recetor (alcance por direção e RSSI) para identificar obstáculos que atenuam ou bloqueiam o sinal. |
-| US18 | E5 | M | 8 | Como utilizador, quero usar a aplicação na web, em Android e em iOS com as mesmas funcionalidades. |
-| US19 | E5 | C | 2 | Como utilizador, quero guardar voos ou aviões favoritos. |
+| US01 | E1 | M | 3 | As the system, I want to read the dump1090 `aircraft.json` every second so that aircraft positions are kept up to date. |
+| US02 | E1 | M | 5 | As the system, I want to store every position in PostgreSQL so that a flight history is preserved. |
+| US03 | E1 | M | 5 | As a user, I want to see the airline and route (origin → destination) of a flight. |
+| US04 | E1 | S | 3 | As a user, I want to see the photo, registration and model of an aircraft. |
+| US05 | E1 | S | 3 | As the system, I want to cache enrichment data so that external APIs are not overloaded. |
+| US06 | E2 | M | 5 | As a user, I want to see aircraft on a real-time map, with icons oriented by track. |
+| US07 | E2 | M | 3 | As a user, I want to select an aircraft and see a panel with its altitude, speed, squawk, route and photo. |
+| US08 | E2 | M | 5 | As a user, I want to filter aircraft by origin/destination airport, altitude, airline and aircraft type. |
+| US09 | E2 | S | 2 | As a user, I want to search by callsign, registration or ICAO address. |
+| US10 | E2 | S | 3 | As a user, I want to see the track an aircraft has already flown. |
+| US11 | E2 | C | 2 | As a user, I want to see concise weather information (METAR: wind, visibility) in the airport panel and as an indicator on the map. |
+| US12 | E3 | S | 8 | As a user, I want to select a past instant on a timeline and see the airspace as it was (replay). |
+| US13 | E3 | S | 5 | As a user, I want to enable, disable and configure alerts (emergency squawks 7500/7600/7700, a specific aircraft or model, military aircraft). |
+| US14 | E3 | C | 5 | As a user, I want to see arrivals and departures at Porto Airport (LPPR). |
+| US15 | E3 | C | 3 | As a user, I want daily statistics (top airlines, highest and fastest aircraft, peak hours). |
+| US16 | E3 | C | 8 | As a user, I want a 3D view of the flights. |
+| US17 | E4 | M | 5 | As an evaluator, I want a receiver coverage map (range per bearing and RSSI) to identify obstacles that attenuate or block the signal. |
+| US18 | E5 | M | 8 | As a user, I want to use the application on the web, Android and iOS with the same features. |
+| US19 | E5 | C | 2 | As a user, I want to save favourite flights or aircraft. |
 
-## Critérios de aceitação
+## 3. Acceptance Criteria
 
-Estado: ✅ feito · 🟡 parcial (backend feito, falta a UI)
+Status: ✅ done · 🟡 partial (backend done, user interface pending)
 
 **US01** ✅
-- Dado o `aircraft.json` do professor disponível, o collector lê-o a cada `POLL_INTERVAL_SECONDS`.
-- Aceita campos do dump1090-mutability (`altitude`, `speed`) e do dump1090-fa (`alt_baro`, `gs`).
-- Se a leitura falhar, regista o erro e tenta de novo na iteração seguinte sem terminar.
-- A hora da posição vem de `seen_pos` e posições com mais de 60 s não contam como atuais.
+- Given that the course receiver's `aircraft.json` is available, the collector reads it every `POLL_INTERVAL_SECONDS`.
+- Fields from both dump1090-mutability (`altitude`, `speed`) and dump1090-fa (`alt_baro`, `gs`) are accepted.
+- If a read fails, the error is logged and the read is retried on the next iteration without stopping the service.
+- The position timestamp is derived from `seen_pos`; positions older than 60 s are not considered current.
 
 **US02** ✅
-- Cada avião visto fica na tabela `aircraft` com `first_seen` / `last_seen`.
-- A posição de cada avião é guardada no máximo a cada `POSITION_MIN_INTERVAL_SECONDS`.
-- Aviões sem posição não geram linhas em `position`.
-- A mesma posição não é guardada duas vezes.
-- O estado atual de cada avião fica em `aircraft_live`, atualizado a cada leitura.
-- Retenção: `position` e `receiver_snapshot` são apagados ao fim de `RETENTION_DAYS` (30).
+- Every aircraft observed is stored in the `aircraft` table with `first_seen` and `last_seen`.
+- Each aircraft's position is stored at most once every `POSITION_MIN_INTERVAL_SECONDS`.
+- Aircraft without a position do not produce rows in `position`.
+- The same position is never stored twice.
+- The current state of each aircraft is kept in `aircraft_live` and updated on every read.
+- Retention: rows in `position` and `receiver_snapshot` are deleted after `RETENTION_DAYS` (30).
 
-**US03** 🟡 (backend no Sprint 1, UI no Sprint 2)
-- A rota (companhia, origem → destino) de cada callsign visto vem do adsbdb e fica em `flight_route`.
-- `/aircraft/live`, `/aircraft/{hex}` e `/ws/live` devolvem a rota junto com a posição.
+**US03** 🟡 (backend in Sprint 1, user interface in Sprint 2)
+- The route (airline, origin → destination) of every callsign observed is fetched from adsbdb and stored in `flight_route`.
+- `/aircraft/live`, `/aircraft/{hex}` and `/ws/live` return the route together with the position.
 
-**US04** 🟡 (backend no Sprint 1, UI no Sprint 2)
-- Matrícula, modelo e operador vêm do adsbdb; a foto vem do planespotters, com o nome do fotógrafo e o link para a página da foto.
+**US04** 🟡 (backend in Sprint 1, user interface in Sprint 2)
+- Registration, model and operator are fetched from adsbdb; the photo is fetched from planespotters, together with the photographer's name and a link to the photo page.
 
 **US05** ✅
-- Cada hex e cada callsign é consultado uma vez e fica em cache (aeronave 30 dias, rota 7 dias).
-- "Não encontrado" também fica em cache; os erros são repetidos ao fim de 1 h.
-- No máximo 1 pedido/s por API, retry com backoff exponencial (respeita `Retry-After`).
+- Each ICAO address and each callsign is queried once and cached (aircraft: 30 days; route: 7 days).
+- "Not found" responses are also cached; errors are retried after 1 hour.
+- At most one request per second is sent to each API, with exponential backoff retries (honouring `Retry-After`).
 
-## Plano de sprints
+## 4. Sprint Plan
 
-| Sprint | Datas | Objetivo | Stories |
+| Sprint | Dates | Goal | Stories |
 |---|---|---|---|
-| 0 | 10 – 16 nov | Repositório, arquitetura, ambiente Docker, backlog | — |
-| 1 | 17 – 30 nov | Recolha e persistência a funcionar na cloud | US01, US02, US05 ✅; backend de US03, US04 (trazido do Sprint 2); API REST + WebSocket |
-| 2 | 1 – 14 dez | Mapa completo com enriquecimento | UI de US03, US04; US06–US10 |
-| 3 | 15 – 28 dez | App multiplataforma, alertas, replay, cobertura | US12, US13, US17, US18 |
-| 4 | 29 dez – 5 jan | Extras, polimento, relatório, ensaio da demo | US11, US14–US16, US19 |
+| 0 | 10 – 16 Nov | Repository, architecture, Docker environment and backlog | — |
+| 1 | 17 – 30 Nov | Data collection and persistence running in the cloud | US01, US02, US05 ✅; backend of US03 and US04 (brought forward from Sprint 2); REST and WebSocket API |
+| 2 | 1 – 14 Dec | Complete map with enrichment | User interface of US03 and US04; US06–US10 |
+| 3 | 15 – 28 Dec | Cross-platform application, alerts, replay and coverage | US12, US13, US17, US18 |
+| 4 | 29 Dec – 5 Jan | Additional features, polishing, report and demo rehearsal | US11, US14–US16, US19 |
 
-## Definition of Done
+## 5. Definition of Done
 
-- Código no `main` via pull request, com CI verde.
-- Testes para a lógica de parsing/tratamento de dados.
-- Funcionalidade disponível no deploy (não só em local).
-- Documentação/README atualizados quando aplicável.
+- Code is merged into `main` through a pull request with a passing CI pipeline.
+- Data parsing and processing logic is covered by tests.
+- The feature is available in the deployed environment, not only locally.
+- Documentation and README files are updated where applicable.

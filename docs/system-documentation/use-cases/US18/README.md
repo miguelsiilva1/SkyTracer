@@ -1,20 +1,20 @@
-# US18 — Aplicação multiplataforma
+# US18 — Cross-platform application
 
-**Épico:** E5 · **Prioridade:** M · **SP:** 8 · **Estado:** ⏳ planeado para o Sprint 3
+**Epic:** E5 · **Priority:** M · **SP:** 8 · **Status:** ⏳ planned for Sprint 3
 
 ## User Story
 
-> Como utilizador, quero usar a aplicação na web, em Android e em iOS com as mesmas funcionalidades.
+> As a user, I want to use the application on the web, Android, and iOS with the same features.
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- A app é uma única base de código Expo (React Native) com build web, Android e iOS.
-- O mapa usa `maplibre-gl` na web e `@maplibre/maplibre-react-native` em mobile.
-- As funcionalidades das US06–US10 estão disponíveis nas três plataformas.
-- A versão web é publicada no GitHub Pages pelo CI.
+- The app is a single Expo (React Native) codebase building for web, Android, and iOS.
+- The map uses `maplibre-gl` on the web and `@maplibre/maplibre-react-native` on mobile.
+- Features from US06–US10 are available across all three platforms.
+- The web version is published to GitHub Pages by CI.
 
-> Critérios a validar no planeamento do Sprint 3; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 3 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
-- Requisito transversal (não tem SSD próprio); a arquitetura da app é descrita no Sprint 3.
+- Cross-cutting requirement (no dedicated SSD); app architecture will be described in Sprint 3.

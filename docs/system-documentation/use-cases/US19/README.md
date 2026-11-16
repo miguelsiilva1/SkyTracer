@@ -1,20 +1,20 @@
-# US19 — Guardar favoritos
+# US19 — Save favourites
 
-**Épico:** E5 · **Prioridade:** C · **SP:** 2 · **Estado:** ⏳ planeado para o Sprint 4
+**Epic:** E5 · **Priority:** C · **SP:** 2 · **Status:** ⏳ planned for Sprint 4
 
 ## User Story
 
-> Como utilizador, quero guardar voos ou aviões favoritos.
+> As a user, I want to save favourite flights or aircraft.
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- É possível marcar/desmarcar um avião (hex) ou voo (callsign) como favorito.
-- Os favoritos persistem no dispositivo.
-- Os favoritos visíveis são destacados no mapa e listados num painel próprio.
+- It is possible to mark/unmark an aircraft (hex) or flight (callsign) as a favourite.
+- Favourites persist on the device.
+- Visible favourites are highlighted on the map and listed in a dedicated panel.
 
-> Critérios a validar no planeamento do Sprint 4; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 4 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us19.puml) · ![SSD](svg/ssd_us19.svg)
-- SD: a elaborar no planeamento do Sprint 4.
+- SD: to be produced during Sprint 4 planning.

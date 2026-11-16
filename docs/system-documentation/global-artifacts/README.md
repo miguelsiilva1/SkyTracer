@@ -1,29 +1,34 @@
-# Artefactos globais
+# Global Artefacts
 
-## 1. [Glossário](glossary.md)
+| Artefact | Contents |
+|---|---|
+| [Glossary](glossary.md) | Domain terms, expressions and acronyms |
+| [Supplementary Specification (FURPS+)](furps.md) | Non-functional requirements and constraints |
+| [Domain Model](#1-domain-model-dm) | Conceptual model of the problem |
+| [Class Diagram](#2-class-diagram-cd) | Backend classes and modules, as implemented |
 
-## 2. Modelo de Domínio (DM)
+## 1. Domain Model (DM)
 
-Modelo conceptual do problema: conceitos, atributos e associações, independente da tecnologia.
-Os conceitos marcados `<<planeado>>` pertencem a user stories ainda não implementadas.
+Conceptual model of the problem: concepts, attributes and associations, independent of technology.
+Concepts are grouped by package and colour; grey concepts belong to user stories that have not yet been implemented.
 
-![Modelo de Domínio](svg/DM.svg)
+![Domain Model](svg/DM.svg)
 
-Notas:
+Notes:
 
-- **Aeronave** é a raiz do agregado: a identificação, a fotografia e o estado de enriquecimento só existem associados a uma aeronave e são renovados em conjunto.
-- **Estado Atual** e **Posição** distinguem-se pelo propósito: o primeiro é a última observação (substituída a cada leitura); a segunda é histórica (acumulada e sujeita a retenção).
-- **Rota** está associada ao **Voo (Callsign)** e não à aeronave: a mesma aeronave opera vários voos por dia.
+- **Aircraft** is the aggregate root: identification, photo and enrichment status only exist in association with an aircraft and are refreshed together.
+- **Live State** and **Position** differ in purpose: the former is the latest observation (replaced on every read); the latter is historical (accumulated and subject to retention).
+- **Route** is associated with the **Flight (Callsign)**, not with the aircraft, since the same aircraft operates several flights per day.
 
-## 3. Diagrama de Classes (CD)
+## 2. Class Diagram (CD)
 
-Classes e módulos do backend (`backend/skytracer/`), com atributos, operações e dependências, tal como estão implementados.
-Os módulos Python que só contêm funções aparecem com o estereótipo `<<module>>`.
+Backend classes and modules (`backend/skytracer/`), with their attributes, operations and dependencies, as implemented.
+Python modules containing only functions are shown with the `<<module>>` stereotype.
 
-![Diagrama de Classes](svg/CD.svg)
+![Class Diagram](svg/CD.svg)
 
-Notas:
+Notes:
 
-- **Do DM para o CD:** os conceitos do domínio não são classes persistentes (não há ORM); vivem como tabelas no PostgreSQL e como *dataclasses* imutáveis que transportam dados entre camadas (`AircraftState`, `AircraftInfo`, `RouteInfo`, `Photo`).
-- **Parsing separado de I/O:** `dump1090`, `adsbdb` e `planespotters` convertem JSON em objetos sem efeitos laterais; a rede está isolada em `RateLimitedClient` e a BD nos módulos de serviço (`collector_main`, `worker`, `api_main`).
-- **`Settings`** é a única fonte de configuração, partilhada por todos os serviços.
+- **From DM to CD:** domain concepts are not persistent classes (no ORM is used); they exist as PostgreSQL tables and as immutable *dataclasses* that carry data between layers (`AircraftState`, `AircraftInfo`, `RouteInfo`, `Photo`).
+- **Parsing separated from I/O:** `dump1090`, `adsbdb` and `planespotters` convert JSON into objects without side effects; network access is isolated in `RateLimitedClient` and database access in the service modules (`collector_main`, `worker`, `api_main`).
+- **`Settings`** is the single source of configuration, shared by all services.

@@ -1,21 +1,21 @@
-# US09 — Pesquisar avião
+# US09 — Search aircraft
 
-**Épico:** E2 · **Prioridade:** S · **SP:** 2 · **Estado:** ⏳ planeado para o Sprint 2
+**Epic:** E2 · **Priority:** S · **SP:** 2 · **Status:** ⏳ planned for Sprint 2
 
 ## User Story
 
-> Como utilizador, quero pesquisar por callsign, matrícula ou hex.
+> As a user, I want to search by callsign, registration, or hex.
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- A pesquisa aceita callsign, matrícula ou hex, sem distinguir maiúsculas/minúsculas.
-- Se o avião estiver visível, o mapa centra-se nele e abre o painel (US07).
-- Se não estiver visível mas for conhecido, mostra os dados e a última vez que foi visto.
-- Sem resultados, é apresentada uma mensagem informativa.
+- Search accepts callsign, registration, or hex, case-insensitively.
+- If the aircraft is visible, the map centres on it and opens the panel (US07).
+- If it is not visible but known, it displays its data and the last time it was seen.
+- With no results, an informative message is displayed.
 
-> Critérios a validar no planeamento do Sprint 2; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 2 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us09.puml) · ![SSD](svg/ssd_us09.svg)
-- SD: a elaborar no planeamento do Sprint 2.
+- SD: to be produced during Sprint 2 planning.

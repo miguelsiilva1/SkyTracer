@@ -1,54 +1,54 @@
-# US02 — Guardar as posições em PostgreSQL
+# US02 — Store positions in PostgreSQL
 
-**Épico:** E1 · **Prioridade:** M · **SP:** 5 · **Estado:** ✅ Sprint 1
+**Epic:** E1 · **Priority:** M · **SP:** 5 · **Status:** ✅ Sprint 1
 
 ## User Story
 
-> Como sistema, quero guardar cada posição em PostgreSQL para manter o histórico dos voos.
+> As the system, I want to store each position in PostgreSQL so that flight history is maintained.
 
-## Critérios de Aceitação
+## Acceptance Criteria
 
-- Cada aeronave vista fica na tabela `aircraft` com `first_seen` / `last_seen`.
-- A posição de cada aeronave é guardada no máximo a cada `POSITION_MIN_INTERVAL_SECONDS` (5 s).
-- Aeronaves sem posição, ou com posição com mais de 60 s, não geram linhas em `position`.
-- A mesma posição não é guardada duas vezes.
-- O estado atual de cada aeronave fica em `aircraft_live`, atualizado a cada leitura; é removido ao fim de `LIVE_EXPIRY_SECONDS` (300 s) sem mensagens.
-- É guardado um resumo do recetor em `receiver_snapshot` a cada `SNAPSHOT_INTERVAL_SECONDS` (10 s).
-- Retenção: `position` e `receiver_snapshot` são apagados ao fim de `RETENTION_DAYS` (30).
+- Each seen aircraft is recorded in the `aircraft` table with `first_seen` / `last_seen`.
+- The position of each aircraft is stored at most every `POSITION_MIN_INTERVAL_SECONDS` (5 s).
+- Aircraft without a position, or with a position older than 60 s, do not generate rows in `position`.
+- The same position is not stored twice.
+- The live state of each aircraft is kept in `aircraft_live`, updated on every read; it is removed after `LIVE_EXPIRY_SECONDS` (300 s) without messages.
+- A receiver summary is stored in `receiver_snapshot` every `SNAPSHOT_INTERVAL_SECONDS` (10 s).
+- Retention: `position` and `receiver_snapshot` are deleted after `RETENTION_DAYS` (30).
 
-## Pré-condições
+## Preconditions
 
-- A base de dados está acessível e as migrações foram aplicadas (cada serviço aplica-as no arranque).
-- Existe um `Snapshot` produzido pela US01.
+- The database is accessible and migrations have been applied (each service applies them on startup).
+- A `Snapshot` produced by US01 is available.
 
-## Pós-condições
+## Postconditions
 
-- `aircraft`, `aircraft_live`, `position` e `receiver_snapshot` refletem a leitura, numa única transação.
+- `aircraft`, `aircraft_live`, `position`, and `receiver_snapshot` reflect the read, within a single transaction.
 
-## Cenário Principal
+## Main Success Scenario
 
-1. O sistema seleciona as aeronaves com posição recente cuja última posição guardada tem ≥ 5 s.
-2. O sistema faz *upsert* de todas as aeronaves em `aircraft` e em `aircraft_live`.
-3. O sistema remove de `aircraft_live` as aeronaves sem mensagens há mais de 300 s.
-4. O sistema insere as posições selecionadas em `position`.
-5. Se passaram ≥ 10 s desde o último resumo, insere uma linha em `receiver_snapshot`.
-6. O sistema confirma a transação e só então atualiza o estado em memória.
+1. The system selects aircraft with recent positions whose last stored position is ≥ 5 s old.
+2. The system upserts all aircraft into `aircraft` and `aircraft_live`.
+3. The system removes aircraft from `aircraft_live` with no messages for more than 300 s.
+4. The system inserts the selected positions into `position`.
+5. If ≥ 10 s have elapsed since the last summary, it inserts a row into `receiver_snapshot`.
+6. The system commits the transaction and only then updates in-memory state.
 
-## Fluxos Alternativos / Exceções
+## Alternative Flows / Exceptions
 
-| Passo | Condição | Resposta do sistema |
+| Step | Condition | System response |
 |---|---|---|
-| 2–6 | Erro SQL | `rollback`; a leitura seguinte é processada normalmente |
-| 2–6 | Ligação à BD perdida | Fecha a ligação e volta a ligar ao fim de 5 s |
+| 2–6 | SQL error | `rollback`; the next read is processed normally |
+| 2–6 | Database connection lost | Closes connection and reconnects after 5 s |
 
-## Justificação do Desenho
+## Design Rationale
 
-- `aircraft_live` é `UNLOGGED`: é escrita a 1 Hz e reconstrói-se em segundos, pelo que dispensa WAL.
-- `last_position` é atualizado **depois** do `commit` para não perder posições caso a transação falhe.
-- `GREATEST(last_seen)` e `COALESCE(category)` evitam que dados mais antigos ou nulos sobrescrevam dados válidos.
-- A limpeza de retenção corre uma vez por dia no worker de enriquecimento (`purge_old_data`), para não penalizar o ciclo de 1 s.
+- `aircraft_live` is `UNLOGGED`: it is written at 1 Hz and rebuilds in seconds, therefore dispensing with WAL.
+- `last_position` is updated **after** the `commit` to avoid losing positions if the transaction fails.
+- `GREATEST(last_seen)` and `COALESCE(category)` prevent older or null data from overwriting valid data.
+- Purging old data runs in a separate worker every 24 h so as not to block the collector.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us02.puml) · ![SSD](svg/ssd_us02.svg)
 - [SD](puml/sd_us02.puml) · ![SD](svg/sd_us02.svg)

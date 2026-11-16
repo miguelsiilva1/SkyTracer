@@ -1,21 +1,21 @@
-# US15 — Estatísticas diárias
+# US15 — Daily statistics
 
-**Épico:** E3 · **Prioridade:** C · **SP:** 3 · **Estado:** ⏳ planeado para o Sprint 4
+**Epic:** E3 · **Priority:** C · **SP:** 3 · **Status:** ⏳ planned for Sprint 4
 
 ## User Story
 
-> Como utilizador, quero estatísticas diárias (top companhias, avião mais alto/rápido, horas de pico).
+> As a user, I want daily statistics (top airlines, highest/fastest aircraft, peak hours).
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- Para um dia escolhido, mostra o top 10 de companhias por número de voos.
-- Mostra o avião mais alto e o mais rápido do dia.
-- Mostra o número de aviões por hora (horas de pico).
-- As estatísticas usam os dados guardados (`position`, `receiver_snapshot`).
+- For a selected day, displays the top 10 airlines by number of flights.
+- Displays the highest and fastest aircraft of the day.
+- Displays the number of aircraft per hour (peak hours).
+- Statistics use stored data (`position`, `receiver_snapshot`).
 
-> Critérios a validar no planeamento do Sprint 4; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 4 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us15.puml) · ![SSD](svg/ssd_us15.svg)
-- SD: a elaborar no planeamento do Sprint 4.
+- SD: to be produced during Sprint 4 planning.

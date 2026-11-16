@@ -1,15 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : consultarAviao(hex)
+A -> S : getAircraft(hex)
 activate S
-alt avião conhecido
-  S --> U : matrícula, modelo, fabricante, operador,\nfoto (url, fotógrafo, ligação), estado atual
-else desconhecido
-  S --> U : erro "Avião desconhecido"
-end
+S --> A : returns registration, model, manufacturer, operator, photo and live state
 deactivate S
 @enduml

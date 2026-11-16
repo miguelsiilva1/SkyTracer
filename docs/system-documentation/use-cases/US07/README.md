@@ -1,46 +1,46 @@
-# US07 — Ver o painel de detalhe de um avião
+# US07 — View aircraft detail panel
 
-**Épico:** E2 · **Prioridade:** M · **SP:** 3 · **Estado:** 🟡 backend no Sprint 1, app no Sprint 2
+**Epic:** E2 · **Priority:** M · **SP:** 3 · **Status:** 🟡 backend in Sprint 1, app in Sprint 2
 
 ## User Story
 
-> Como utilizador, quero clicar num avião e ver um painel com altitude, velocidade, squawk, rota e foto.
+> As a user, I want to click on an aircraft and view a panel with altitude, speed, squawk, route, and photo.
 
-## Critérios de Aceitação
+## Acceptance Criteria
 
-- Ao selecionar um avião no mapa, a app pede `GET /aircraft/{hex}`.
-- O painel mostra: callsign, matrícula, modelo, operador, altitude (ft), velocidade (kt), razão vertical, squawk, rumo, rota (origem → destino) e foto com crédito.
-- Se o avião deixar de ser visto, o painel indica que o estado não é atual (`live = null`).
-- Squawks de emergência (`7500`, `7600`, `7700`) são destacados.
-- Os dados do painel acompanham as atualizações do `/ws/live`.
+- When selecting an aircraft on the map, the app requests `GET /aircraft/{hex}`.
+- The panel displays: callsign, registration, model, operator, altitude (ft), speed (kt), vertical rate, squawk, track, route (origin → destination), and photo with credit.
+- If the aircraft is no longer seen, the panel indicates that the state is not current (`live = null`).
+- Emergency squawks (`7500`, `7600`, `7700`) are highlighted.
+- Panel data track updates from `/ws/live`.
 
-## Pré-condições
+## Preconditions
 
-- O mapa está aberto (US06) e o avião está visível.
+- The map is open (US06) and the aircraft is visible.
 
-## Pós-condições
+## Postconditions
 
-- O painel apresenta os dados da aeronave selecionada.
+- The panel presents the data of the selected aircraft.
 
-## Cenário Principal
+## Main Success Scenario
 
-1. O utilizador seleciona um avião no mapa.
-2. A app pede o detalhe ao sistema.
-3. O sistema devolve identificação, fotografia, rota e estado atual.
-4. A app mostra o painel e atualiza-o com as mensagens seguintes do WebSocket.
+1. The user selects an aircraft on the map.
+2. The app requests details from the system.
+3. The system returns identification, photograph, route, and live state.
+4. The app displays the panel and updates it with subsequent WebSocket messages.
 
-## Fluxos Alternativos / Exceções
+## Alternative Flows / Exceptions
 
-| Passo | Condição | Resposta do sistema |
+| Step | Condition | System response |
 |---|---|---|
-| 3 | Hex desconhecido | `404`; a app mostra só os dados do WebSocket |
-| 3 | Enriquecimento ainda por fazer | Campos de identificação/foto a `null`; a app mostra "a obter dados" |
+| 3 | Unknown hex | `404`; the app displays only WebSocket data |
+| 3 | Enrichment still pending | Identification/photo fields set to `null`; the app displays "fetching data" |
 
-## Justificação do Desenho
+## Design Rationale
 
-- O detalhe reutiliza o endpoint da US04; o estado dinâmico vem do WebSocket já aberto, evitando *polling*.
+- Detail reuses the endpoint from US04; dynamic state comes from the already open WebSocket, avoiding polling.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us07.puml) · ![SSD](svg/ssd_us07.svg)
 - [SD](puml/sd_us07.puml) · ![SD](svg/sd_us07.svg)

@@ -1,23 +1,22 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
+actor "User" as U
 participant "App Expo\n(Sprint 2)" as App
 participant "aircraft_detail()" as API
 database "PostgreSQL" as DB
 
-U -> App : toca no ícone do avião
+U -> App : taps aircraft icon
 App -> API : GET /aircraft/{hex}
 activate API
 API -> DB : AIRCRAFT (hex)
-DB --> API : identificação + foto
+DB --> API : identification + photo
 API -> DB : AIRCRAFT_LIVE (hex)
-DB --> API : estado atual + rota
+DB --> API : live state + route
 API --> App : 200 { ..., live: {...} }
 deactivate API
-App -> U : mostra painel
-loop mensagens do /ws/live (US06)
-  App -> App : procura hex em aircraft[]
-  App -> U : atualiza altitude, velocidade, squawk
+App -> U : displays panel
+loop messages from /ws/live (US06)
+  App -> App : looks up hex in aircraft[]
+  App -> U : updates altitude, speed, squawk
 end
 @enduml

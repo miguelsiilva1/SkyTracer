@@ -1,18 +1,17 @@
 @startuml
 autonumber
-skinparam monochrome true
 participant "run_once()" as W
 participant "enrich_aircraft()" as EA
 participant "adsbdb" as A
 participant "planespotters" as P
 database "PostgreSQL" as DB
-actor "Utilizador" as U
+actor "User" as U
 participant "API FastAPI\naircraft_detail()" as API
 
-== Enriquecimento (assíncrono) ==
-W -> DB : AIRCRAFT_TODO (visíveis, por enriquecer ou expirados)
+== Enrichment (asynchronous) ==
+W -> DB : AIRCRAFT_TODO (visible, to be enriched or expired)
 DB --> W : hexes[]
-loop para cada hex
+loop for each hex
   W -> EA : enrich_aircraft(conn, clients, hex)
   activate EA
   EA -> A : fetch_aircraft(hex)
@@ -21,26 +20,26 @@ loop para cada hex
   P --> EA : Photo | None
   alt EnrichmentError
     EA -> EA : status = "error"
-  else info ou photo
+  else info or photo
     EA -> EA : status = "ok"
-  else nenhum
+  else none
     EA -> EA : status = "not_found"
   end
-  EA -> DB : UPDATE aircraft SET col = COALESCE(novo, col), ...\n+ COMMIT
+  EA -> DB : UPDATE aircraft SET col = COALESCE(new, col), ...\n+ COMMIT
   deactivate EA
 end
 
-== Consulta pelo utilizador ==
+== Query by user ==
 U -> API : GET /aircraft/{hex}
 activate API
-API -> API : valida ^[0-9a-fA-F]{6}$
+API -> API : validates ^[0-9a-fA-F]{6}$
 API -> DB : AIRCRAFT (hex)
-DB --> API : linha | vazio
-alt vazio
-  API --> U : 404 "Avião desconhecido"
-else encontrado
+DB --> API : row | empty
+alt empty
+  API --> U : 404 "Unknown aircraft"
+else found
   API -> DB : AIRCRAFT_LIVE (hex)
-  DB --> API : estado atual | vazio
+  DB --> API : live state | empty
   API --> U : 200 { registration, type_name, photo_url,\nphoto_credit, ..., live: {...} | null }
 end
 deactivate API

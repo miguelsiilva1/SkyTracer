@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : alternarVista3D()
+A -> S : toggle3DView()
 activate S
-S --> U : mapa 3D com aviões à respetiva altitude
+S --> A : returns 3D map with aircraft at their altitude
 deactivate S
 @enduml

@@ -1,11 +1,10 @@
 @startuml CD
 skinparam classAttributeIconSize 0
-skinparam monochrome true
 skinparam shadowing false
 skinparam packageStyle rectangle
 hide empty members
 
-title SkyTracer — Diagrama de Classes (backend)
+title SkyTracer — Class Diagram (backend)
 
 package "skytracer.config" {
   class Settings <<BaseSettings>> {
@@ -185,7 +184,7 @@ adsbdb ..> RouteInfo : cria
 planespotters ..> Photo : cria
 adsbdb ..> RateLimitedClient : usa
 planespotters ..> RateLimitedClient : usa
-RateLimitedClient ..> EnrichmentError : lança
+RateLimitedClient ..> EnrichmentError : raises
 Clients "1" o-- "2" RateLimitedClient
 worker ..> Clients : usa
 worker ..> adsbdb : usa

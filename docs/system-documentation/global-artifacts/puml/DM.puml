@@ -1,136 +1,174 @@
 @startuml DM
 skinparam classAttributeIconSize 0
-skinparam monochrome true
 skinparam shadowing false
+skinparam roundCorner 8
+skinparam nodesep 60
+skinparam ranksep 70
+skinparam defaultFontName Helvetica
+skinparam packageStyle rectangle
+skinparam package {
+  BorderColor #7A8794
+  FontColor #34495E
+}
+skinparam class {
+  BorderColor #34495E
+  ArrowColor #34495E
+  BackgroundColor<<Reception>> #E3F2FD
+  BackgroundColor<<Aircraft>> #FFF3E0
+  BackgroundColor<<Observation>> #E8F5E9
+  BackgroundColor<<Flight>> #F3E5F5
+  BackgroundColor<<Planned>> #F5F5F5
+  BorderColor<<Planned>> #9E9E9E
+  FontColor<<Planned>> #757575
+  StereotypeFontColor #5D6D7E
+}
 hide circle
 hide methods
-left to right direction
+hide stereotype
 
-title SkyTracer — Modelo de Domínio
+title SkyTracer — Domain Model
 
-package "Receção" {
-  class "Recetor" as Receiver <<Entity>> {
-    url
-    localização
+package "Aircraft (aggregate)" {
+  class "**Aircraft**\n<size:10><i>aggregate root</i></size>" as Aircraft <<Aircraft>> {
+    icaoAddress : hex
+    category
+    firstSeen
+    lastSeen
   }
-  class "Leitura do Recetor" as Snapshot <<Entity>> {
-    instante
-    totalMensagens
-    totalAeronaves
-    aeronavesComPosição
+  class "Identification\n<size:10><i>value object</i></size>" as Ident <<Aircraft>> {
+    registration
+    icaoType
+    model
+    manufacturer
+    operator
+    country
+  }
+  class "Photo\n<size:10><i>value object</i></size>" as Photo <<Aircraft>> {
+    url
+    photographer
+    link
+  }
+  class "Enrichment Status\n<size:10><i>value object</i></size>" as EnrichState <<Aircraft>> {
+    status : ok | not found | error
+    timestamp
   }
 }
 
-package "Aeronave" <<Aggregate>> {
-  class "Aeronave" as Aircraft <<Entity>> <<Root>> {
-    endereçoICAO : hex
-    categoria
-    primeiraDeteção
-    últimaDeteção
-  }
-  class "Identificação" as Ident <<Value Object>> {
-    matrícula
-    tipoICAO
-    modelo
-    fabricante
-    operador
-    país
-  }
-  class "Fotografia" as Photo <<Value Object>> {
+package "Reception" {
+  class "Receiver" as Receiver <<Reception>> {
     url
-    fotógrafo
-    ligação
+    location
   }
-  class "Estado de Enriquecimento" as EnrichState <<Value Object>> {
-    estado : ok / não encontrado / erro
-    instante
+  class "Receiver Snapshot" as Snapshot <<Reception>> {
+    timestamp
+    totalMessages
+    totalAircraft
+    aircraftWithPosition
   }
 }
 
-package "Observação" {
-  class "Estado Atual" as Live <<Entity>> {
-    instanteMensagem
-    instantePosição
+package "Observation" {
+  class "Live State" as Live <<Observation>> {
+    messageTimestamp
+    positionTimestamp
     callsign
-    posição
+    position
     altitude
-    noSolo
-    velocidade
-    rumo
-    razãoVertical
+    onGround
+    groundSpeed
+    track
+    verticalRate
     squawk
     rssi
     mlat
   }
-  class "Posição" as Position <<Entity>> {
-    instante
+  class "Position" as Position <<Observation>> {
+    timestamp
     callsign
     latitude
     longitude
     altitude
-    velocidade
-    rumo
+    groundSpeed
+    track
     squawk
     rssi
     mlat
   }
 }
 
-package "Voo" {
-  class "Voo (Callsign)" as Flight <<Entity>> {
+package "Flight" {
+  class "Flight (Callsign)" as FlightCs <<Flight>> {
     callsign
   }
-  class "Rota" as Route <<Entity>> {
-    estado
-    obtidaEm
+  class "Route" as Route <<Flight>> {
+    status
+    fetchedAt
   }
-  class "Companhia Aérea" as Airline <<Entity>> {
-    nome
-    códigoICAO
-    códigoIATA
+  class "Airline" as Airline <<Flight>> {
+    name
+    icaoCode
+    iataCode
   }
-  class "Aeroporto" as Airport <<Entity>> {
-    códigoICAO
-    códigoIATA
-    nome
-    coordenadas
-  }
-}
-
-package "Planeado (Sprints 3-4)" {
-  class "Alerta" as Alert <<Entity>> <<planeado>> {
-    tipo : emergência / aeronave / modelo / militar
-    ativo
-  }
-  class "Célula de Cobertura" as Coverage <<Entity>> <<planeado>> {
-    azimute
-    alcanceMáximo
-    rssiMédio
-  }
-  class "Favorito" as Favourite <<Entity>> <<planeado>>
-  class "METAR" as Metar <<Value Object>> <<planeado>> {
-    vento
-    visibilidade
-    instante
+  class "Airport" as Airport <<Flight>> {
+    icaoCode
+    iataCode
+    name
+    coordinates
   }
 }
 
-Receiver "1" -- "*" Snapshot : produz >
-Snapshot "1" -- "*" Live : atualiza >
-Aircraft "1" *-- "0..1" Ident : identificada por >
-Aircraft "1" *-- "0..1" Photo : ilustrada por >
-Aircraft "1" *-- "1" EnrichState
-Aircraft "1" -- "0..1" Live : está em >
-Aircraft "1" -- "*" Position : percorreu >
-Live "*" -- "0..1" Flight : opera como >
-Position "*" -- "0..1" Flight : sob >
-Flight "1" -- "0..1" Route : segue >
-Route "*" -- "0..1" Airline : operada por >
-Route "*" -- "1" Airport : origem >
-Route "*" -- "1" Airport : destino >
-Receiver "1" -- "*" Coverage : alcance medido em >
-Position "*" ..> Coverage : alimenta >
-Alert "*" ..> Aircraft : vigia >
-Favourite "*" ..> Aircraft : marca >
-Airport "1" -- "0..1" Metar : condições >
+package "Planned (Sprints 3–4)" {
+  class "Alert" as Alert <<Planned>> {
+    type : emergency | aircraft | model | military
+    enabled
+  }
+  class "Coverage Cell" as Coverage <<Planned>> {
+    azimuth
+    maxRange
+    meanRssi
+  }
+  class "Favourite" as Favourite <<Planned>>
+  class "METAR\n<size:10><i>value object</i></size>" as Metar <<Planned>> {
+    wind
+    visibility
+    timestamp
+  }
+}
+
+' Reception
+Receiver "1" -down- "*" Snapshot : produces >
+Snapshot "1" -- "*" Live : updates >
+
+' Aircraft aggregate
+Aircraft "1" *-up- "0..1" Ident : identified by >
+Aircraft "1" *-up- "0..1" Photo : illustrated by >
+Aircraft "1" *-up- "1" EnrichState : has >
+
+' Observation
+Aircraft "1" -down- "0..1" Live : is in >
+Aircraft "1" -down- "*" Position : travelled >
+
+' Flight
+Live "*" -down- "0..1" FlightCs : operates as >
+Position "*" -down- "0..1" FlightCs : under >
+FlightCs "1" -down- "0..1" Route : follows >
+Route "*" -right- "0..1" Airline : operated by >
+Route "*" -down- "1" Airport : origin >
+Route "*" -down- "1" Airport : destination >
+
+' Planned
+Receiver "1" .. "*" Coverage : range measured in >
+Position "*" ..> Coverage : feeds >
+Alert "*" ..> Aircraft : watches >
+Favourite "*" ..> Aircraft : marks >
+Airport "1" .. "0..1" Metar : reports >
+
+legend right
+  |= Colour |= Package |
+  |<#E3F2FD>| Reception |
+  |<#FFF3E0>| Aircraft (aggregate) |
+  |<#E8F5E9>| Observation |
+  |<#F3E5F5>| Flight |
+  |<#F5F5F5>| Planned (not yet implemented) |
+endlegend
 @enduml

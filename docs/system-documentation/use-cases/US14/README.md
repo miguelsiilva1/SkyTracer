@@ -1,20 +1,20 @@
-# US14 — Chegadas e partidas do LPPR
+# US14 — LPPR arrivals and departures
 
-**Épico:** E3 · **Prioridade:** C · **SP:** 5 · **Estado:** ⏳ planeado para o Sprint 4
+**Epic:** E3 · **Priority:** C · **SP:** 5 · **Status:** ⏳ planned for Sprint 4
 
 ## User Story
 
-> Como utilizador, quero ver as chegadas e partidas do aeroporto do Porto (LPPR).
+> As a user, I want to view arrivals and departures for Porto airport (LPPR).
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- A lista de chegadas inclui voos vistos com destino LPPR, com companhia, origem e hora estimada.
-- A lista de partidas inclui voos vistos com origem LPPR que descolaram recentemente.
-- Cada linha abre o painel do avião correspondente (US07).
+- The arrivals list includes flights seen with destination LPPR, with airline, origin, and estimated time.
+- The departures list includes flights seen with origin LPPR that have recently departed.
+- Each row opens the corresponding aircraft panel (US07).
 
-> Critérios a validar no planeamento do Sprint 4; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 4 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us14.puml) · ![SSD](svg/ssd_us14.svg)
-- SD: a elaborar no planeamento do Sprint 4.
+- SD: to be produced during Sprint 4 planning.

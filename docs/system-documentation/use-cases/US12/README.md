@@ -1,21 +1,21 @@
-# US12 — Replay do espaço aéreo
+# US12 — Airspace replay
 
-**Épico:** E3 · **Prioridade:** S · **SP:** 8 · **Estado:** ⏳ planeado para o Sprint 3
+**Epic:** E3 · **Priority:** S · **SP:** 8 · **Status:** ⏳ planned for Sprint 3
 
 ## User Story
 
-> Como utilizador, quero escolher um momento passado numa barra de tempo e ver o espaço aéreo como estava (replay).
+> As a user, I want to choose a past moment on a timeline and view the airspace as it was (replay).
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- A barra de tempo cobre o período de retenção (30 dias).
-- Para o instante escolhido, o mapa mostra a última posição de cada avião nos 60 s anteriores.
-- É possível reproduzir a partir desse instante a velocidades 1×, 10× e 60×.
-- Durante o replay é claro que não se trata de tempo real; é possível voltar ao modo live.
+- The timeline covers the retention period (30 days).
+- For the selected timestamp, the map displays the last position of each aircraft in the preceding 60 s.
+- It is possible to replay from that timestamp at speeds of 1×, 10×, and 60×.
+- During replay, it is clear that this is not real time; returning to live mode is supported.
 
-> Critérios a validar no planeamento do Sprint 3; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 3 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us12.puml) · ![SSD](svg/ssd_us12.svg)
-- SD: a elaborar no planeamento do Sprint 3.
+- SD: to be produced during Sprint 3 planning.

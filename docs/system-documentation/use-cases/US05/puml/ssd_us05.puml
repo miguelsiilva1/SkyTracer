@@ -1,18 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Temporizador" as T
-participant ":Sistema" as S
-participant "adsbdb / planespotters\n<<externos>>" as E
+actor "Timer" as A
+participant "System" as S
 
-loop a cada ENRICH_INTERVAL_SECONDS
-  T -> S : enriquecerPendentes()
-  activate S
-  loop para cada aeronave/callsign sem cache válida
-    S -> E : pedido (<= 1/s por API)
-    E --> S : dados | 404 | erro
-  end
-  S --> T : (aviões, rotas) processados
-  deactivate S
-end
+A -> S : enrichPendingAircraft()
+activate S
+S --> A : returns number of aircraft and routes enriched
+deactivate S
 @enduml

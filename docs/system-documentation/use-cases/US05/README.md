@@ -1,48 +1,48 @@
-# US05 — Cache do enriquecimento
+# US05 — Enrichment caching
 
-**Épico:** E1 · **Prioridade:** S · **SP:** 3 · **Estado:** ✅ Sprint 1
+**Epic:** E1 · **Priority:** S · **SP:** 3 · **Status:** ✅ Sprint 1
 
 ## User Story
 
-> Como sistema, quero guardar em cache os dados de enriquecimento para não abusar das APIs externas.
+> As the system, I want to cache enrichment data so that I do not overuse external APIs.
 
-## Critérios de Aceitação
+## Acceptance Criteria
 
-- Cada hex e cada callsign é consultado uma vez e fica em cache (aeronave 30 dias, rota 7 dias).
-- "Não encontrado" também fica em cache; os erros são repetidos ao fim de 1 h.
-- No máximo 1 pedido/s por API, com *retry* e *backoff* exponencial (respeita `Retry-After`).
-- Só são enriquecidas aeronaves que o recetor está a ver.
+- Each hex and each callsign is queried once and cached (aircraft 30 days, route 7 days).
+- "Not found" is also cached; errors are retried after 1 h.
+- At most 1 request/s per API, with exponential retry and backoff (respects `Retry-After`).
+- Only aircraft currently seen by the receiver are enriched.
 
-## Pré-condições
+## Preconditions
 
-- Existem aeronaves em `aircraft_live`.
+- Aircraft exist in `aircraft_live`.
 
-## Pós-condições
+## Postconditions
 
-- Nenhum pedido repetido dentro do TTL; o ritmo de pedidos por API nunca excede o configurado.
+- No repeated requests within the TTL; the request rate per API never exceeds the configured rate.
 
-## Cenário Principal
+## Main Success Scenario
 
-1. O worker seleciona apenas aeronaves/callsigns visíveis sem cache válida.
-2. Antes de cada pedido, o `RateLimitedClient` espera o necessário para respeitar 1 pedido/s.
-3. A resposta (ou a sua ausência) é guardada com estado e instante.
+1. The worker selects only visible aircraft/callsigns without valid cache.
+2. Before each request, `RateLimitedClient` waits as needed to respect 1 request/s.
+3. The response (or its absence) is stored with status and timestamp.
 
-## Fluxos Alternativos / Exceções
+## Alternative Flows / Exceptions
 
-| Passo | Condição | Resposta do sistema |
+| Step | Condition | System response |
 |---|---|---|
-| 2 | HTTP 404 | Devolve `None` → cache negativa (`not_found`) |
-| 2 | HTTP 429 / 5xx / erro de rede | Espera `Retry-After` ou `base·2^tentativa` (máx. 60 s) e repete até 5 tentativas |
-| 2 | Outro 4xx ou JSON inválido | `EnrichmentError` imediato → `error` |
-| 2 | Esgotadas as tentativas | `EnrichmentError` → `error`, repetido ao fim de 1 h |
+| 2 | HTTP 404 | Returns `None` → negative cache (`not_found`) |
+| 2 | HTTP 429 / 5xx / network error | Waits for `Retry-After` or `base · 2^attempt` (max. 60 s) and retries up to 5 attempts |
+| 2 | Other 4xx or invalid JSON | Immediate `EnrichmentError` → `error` |
+| 2 | Exhausted attempts | `EnrichmentError` → `error`, retried after 1 h |
 
-## Justificação do Desenho
+## Design Rationale
 
-- Um `RateLimitedClient` por API, porque cada API tem os seus próprios limites.
-- O TTL é aplicado no próprio SQL de seleção (`AIRCRAFT_TODO`, `ROUTES_TODO`), pelo que a "cache" é a BD e sobrevive a reinícios.
-- `sleep` e `clock` são injetáveis, o que permite testar o *throttle* e o *backoff* sem esperas reais.
+- One `RateLimitedClient` per API, because each API has its own limits.
+- The TTL is applied directly in the selection SQL (`AIRCRAFT_TODO`, `ROUTES_TODO`), so the database serves as the cache and survives restarts.
+- `sleep` and `clock` are injectable, allowing throttle and backoff to be tested without real delays.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us05.puml) · ![SSD](svg/ssd_us05.svg)
 - [SD](puml/sd_us05.puml) · ![SD](svg/sd_us05.svg)
