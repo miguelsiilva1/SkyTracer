@@ -1,15 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : abrirMapa()
+A -> S : openLiveMap()
 activate S
-S --> U : aviões visíveis (posição, rumo, altitude, ...)
-loop a cada ~1 s, enquanto o mapa estiver aberto
-  S --> U : estado atualizado dos aviões
-end
-U -> S : fecharMapa()
+S --> A : returns visible aircraft (position, track, altitude), updated every second
 deactivate S
 @enduml

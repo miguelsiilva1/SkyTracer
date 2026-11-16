@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : pesquisar(termo)
+A -> S : searchAircraft(query)
 activate S
-S --> U : aviões correspondentes (visíveis primeiro)
+S --> A : returns matching aircraft (visible first)
 deactivate S
 @enduml

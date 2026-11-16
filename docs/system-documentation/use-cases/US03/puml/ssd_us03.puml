@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : consultarAvioesVisiveis()
+A -> S : getVisibleAircraft()
 activate S
-S --> U : lista de aviões com companhia,\norigem e destino
+S --> A : returns visible aircraft with airline, origin and destination
 deactivate S
 @enduml

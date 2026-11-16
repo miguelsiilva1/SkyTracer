@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : verRasto(hex, minutos)
+A -> S : getTrack(hex, minutes)
 activate S
-S --> U : posições ordenadas (ts, lat, lon, altitude, ...)
+S --> A : returns ordered positions (timestamp, latitude, longitude, altitude)
 deactivate S
 @enduml

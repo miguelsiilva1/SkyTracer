@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Avaliador" as U
-participant ":Sistema" as S
+actor "Evaluator" as A
+participant "System" as S
 
-U -> S : consultarCobertura(faixaAltitude)
+A -> S : getCoverage(altitudeBand)
 activate S
-S --> U : alcance máximo e RSSI médio por azimute
+S --> A : returns maximum range and mean RSSI per bearing
 deactivate S
 @enduml

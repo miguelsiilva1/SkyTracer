@@ -1,11 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : verEspacoAereo(instante)
+A -> S : replayAirspace(instant)
 activate S
-S --> U : aviões e posições nesse instante
+S --> A : returns aircraft and positions at that instant
 deactivate S
 @enduml

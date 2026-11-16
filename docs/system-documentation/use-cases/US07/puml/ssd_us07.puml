@@ -1,14 +1,10 @@
 @startuml
 autonumber
-skinparam monochrome true
-actor "Utilizador" as U
-participant ":Sistema" as S
+actor "User" as A
+participant "System" as S
 
-U -> S : selecionarAviao(hex)
+A -> S : selectAircraft(hex)
 activate S
-S --> U : painel: callsign, matrícula, modelo, altitude,\nvelocidade, squawk, rota, foto
+S --> A : returns details panel (callsign, registration, model, altitude, speed, squawk, route, photo)
 deactivate S
-loop enquanto o painel estiver aberto
-  S --> U : altitude, velocidade, squawk atualizados
-end
 @enduml
