@@ -38,3 +38,6 @@ ESTUDO.md
 
 # Relatório final (Typst, local até à entrega)
 report/
+
+# Local diagram generation helper
+docs/generate-svg.sh
