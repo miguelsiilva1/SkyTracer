@@ -1,21 +1,21 @@
-# US17 — Mapa de cobertura do recetor
+# US17 — Receiver coverage map
 
-**Épico:** E4 · **Prioridade:** M · **SP:** 5 · **Estado:** ⏳ planeado para o Sprint 3
+**Epic:** E4 · **Priority:** M · **SP:** 5 · **Status:** ⏳ planned for Sprint 3
 
 ## User Story
 
-> Como avaliador, quero um mapa de cobertura do recetor (alcance por direção e RSSI) para identificar obstáculos que atenuam ou bloqueiam o sinal.
+> As an evaluator, I want a receiver coverage map (range by bearing and RSSI) so that I can identify obstacles that attenuate or block the signal.
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- O alcance máximo é calculado por setor de azimute (p. ex. 1°) a partir das posições recebidas.
-- O resultado é agregado numa tabela própria que não é apagada pela retenção.
-- O mapa mostra o polígono de alcance e o RSSI médio por setor, opcionalmente por faixa de altitude.
-- É possível identificar setores com alcance anormalmente reduzido (possíveis obstáculos).
+- Maximum range is calculated per azimuth sector (e.g. 1°) from received positions.
+- The result is aggregated in a dedicated table that is not purged by retention.
+- The map displays the range polygon and average RSSI per sector, optionally by altitude band.
+- It is possible to identify sectors with abnormally reduced range (potential obstacles).
 
-> Critérios a validar no planeamento do Sprint 3; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 3 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us17.puml) · ![SSD](svg/ssd_us17.svg)
-- SD: a elaborar no planeamento do Sprint 3.
+- SD: to be produced during Sprint 3 planning.

@@ -1,22 +1,22 @@
-# US13 — Configurar alertas
+# US13 — Configure alerts
 
-**Épico:** E3 · **Prioridade:** S · **SP:** 5 · **Estado:** ⏳ planeado para o Sprint 3
+**Epic:** E3 · **Priority:** S · **SP:** 5 · **Status:** ⏳ planned for Sprint 3
 
 ## User Story
 
-> Como utilizador, quero ativar/desativar e configurar alertas (emergência 7500/7600/7700, avião ou modelo específico, militares).
+> As a user, I want to enable/disable and configure alerts (emergency 7500/7600/7700, specific aircraft or model, military).
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- Os alertas de emergência (squawk 7500, 7600, 7700) podem ser ativados/desativados.
-- É possível criar alertas para um hex, matrícula ou tipo de aeronave específicos.
-- É possível ativar um alerta para aeronaves militares.
-- Um alerta dispara uma vez por aparecimento do avião e não se repete enquanto continuar visível.
-- A configuração persiste entre sessões no mesmo dispositivo.
+- Emergency alerts (squawk 7500, 7600, 7700) can be enabled/disabled.
+- It is possible to create alerts for a specific hex, registration, or aircraft type.
+- It is possible to enable an alert for military aircraft.
+- An alert triggers once per aircraft appearance and does not repeat while it remains visible.
+- Configuration persists across sessions on the same device.
 
-> Critérios a validar no planeamento do Sprint 3; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 3 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us13.puml) · ![SSD](svg/ssd_us13.svg)
-- SD: a elaborar no planeamento do Sprint 3.
+- SD: to be produced during Sprint 3 planning.

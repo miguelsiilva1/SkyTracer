@@ -1,46 +1,46 @@
-# US10 — Ver o rasto de um avião
+# US10 — View aircraft track
 
-**Épico:** E2 · **Prioridade:** S · **SP:** 3 · **Estado:** 🟡 backend no Sprint 1, app no Sprint 2
+**Epic:** E2 · **Priority:** S · **SP:** 3 · **Status:** 🟡 backend in Sprint 1, app in Sprint 2
 
 ## User Story
 
-> Como utilizador, quero ver o rasto que o avião já percorreu.
+> As a user, I want to view the track that the aircraft has already flown.
 
-## Critérios de Aceitação
+## Acceptance Criteria
 
-- `GET /aircraft/{hex}/track?minutes=N` devolve as posições guardadas nos últimos N minutos (1–1440, por omissão 60), por ordem cronológica.
-- Cada ponto tem `ts`, `lat`, `lon`, `altitude_ft`, `speed_kt`, `track_deg`, `on_ground`.
-- *(Sprint 2)* Ao selecionar um avião, a app desenha o rasto como linha, colorida por altitude.
-- *(Sprint 2)* O rasto é prolongado com as posições recebidas pelo WebSocket.
+- `GET /aircraft/{hex}/track?minutes=N` returns stored positions for the last N minutes (1–1440, default 60), in chronological order.
+- Each point has `ts`, `lat`, `lon`, `altitude_ft`, `speed_kt`, `track_deg`, `on_ground`.
+- *(Sprint 2)* Upon selecting an aircraft, the app draws the track as a line, coloured by altitude.
+- *(Sprint 2)* The track is extended with positions received via WebSocket.
 
-## Pré-condições
+## Preconditions
 
-- Existem posições guardadas para o avião (US02).
+- Stored positions exist for the aircraft (US02).
 
-## Pós-condições
+## Postconditions
 
-- O mapa apresenta o percurso do avião no intervalo pedido.
+- The map displays the aircraft's path over the requested interval.
 
-## Cenário Principal
+## Main Success Scenario
 
-1. O utilizador seleciona um avião.
-2. A app pede o rasto ao sistema.
-3. O sistema devolve as posições do intervalo.
-4. A app desenha a linha e vai acrescentando os pontos novos.
+1. The user selects an aircraft.
+2. The app requests the track from the system.
+3. The system returns positions for the interval.
+4. The app draws the line and appends new points as they arrive.
 
-## Fluxos Alternativos / Exceções
+## Alternative Flows / Exceptions
 
-| Passo | Condição | Resposta do sistema |
+| Step | Condition | System response |
 |---|---|---|
-| 2 | `minutes` fora de 1–1440 ou hex inválido | `422` |
-| 3 | Sem posições no intervalo | `200 []`; não é desenhado rasto |
+| 2 | `minutes` outside 1–1440 or invalid hex | `422` |
+| 3 | No positions in the interval | `200 []`; no track is drawn |
 
-## Justificação do Desenho
+## Design Rationale
 
-- O índice `position (hex, ts DESC)` torna a consulta proporcional ao número de pontos do avião, e não ao tamanho da tabela.
-- A resolução do rasto é de 1 ponto / 5 s (limite da US02), suficiente para uma linha suave.
+- The index `position (hex, ts DESC)` makes the query proportional to the number of points for the aircraft, rather than table size.
+- Track resolution is 1 point / 5 s (US02 threshold), sufficient for a smooth line.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us10.puml) · ![SSD](svg/ssd_us10.svg)
 - [SD](puml/sd_us10.puml) · ![SD](svg/sd_us10.svg)

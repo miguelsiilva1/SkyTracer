@@ -1,19 +1,18 @@
 @startuml
 autonumber
-skinparam monochrome true
 participant "enrichment\nrun_once()" as W
 participant "enrich_route()" as ER
 participant "adsbdb.fetch_route()" as A
 participant "RateLimitedClient" as RL
-participant "adsbdb\n<<externo>>" as Ext
+participant "adsbdb\n<<external>>" as Ext
 database "PostgreSQL" as DB
-actor "Utilizador" as U
+actor "User" as U
 participant "API FastAPI\nlive_aircraft()" as API
 
-== Enriquecimento (assíncrono, a cada 5 s) ==
-W -> DB : ROUTES_TODO (callsigns sem rota ou expirada)
+== Enrichment (asynchronous, every 5 s) ==
+W -> DB : ROUTES_TODO (callsigns without route or expired)
 DB --> W : callsigns[]
-loop para cada callsign
+loop for each callsign
   W -> ER : enrich_route(conn, clients, callsign)
   activate ER
   ER -> A : fetch_route(client, url, callsign)
@@ -33,11 +32,11 @@ loop para cada callsign
   deactivate ER
 end
 
-== Consulta pelo utilizador ==
+== Query by user ==
 U -> API : GET /aircraft/live
 activate API
 API -> DB : LIVE (aircraft_live\nLEFT JOIN aircraft\nLEFT JOIN flight_route status = 'ok')
-DB --> API : linhas
+DB --> API : rows
 API --> U : 200 [ { hex, callsign, ..., airline_name,\n origin_iata, dest_iata, ... } ]
 deactivate API
 @enduml

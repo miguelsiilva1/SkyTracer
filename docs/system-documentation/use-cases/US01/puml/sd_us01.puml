@@ -1,13 +1,12 @@
 @startuml
 autonumber
-skinparam monochrome true
 participant "collector.__main__\nrun()" as Run
 participant "httpx.Client" as Http
-participant "dump1090\n<<externo>>" as D
+participant "dump1090\n<<external>>" as D
 participant "dump1090.py\nparse_snapshot()" as Parser
 participant "store()\n(US02)" as Store
 
-loop enquanto o serviço corre
+loop while the service runs
   Run -> Http : get(settings.dump1090_url)
   activate Http
   Http -> D : GET aircraft.json
@@ -15,15 +14,15 @@ loop enquanto o serviço corre
   Http --> Run : resp
   deactivate Http
 
-  alt HTTPError ou JSON inválido
-    Run -> Run : log.warning("Falha a ler o dump1090")
-  else sucesso
+  alt HTTPError or invalid JSON
+    Run -> Run : log.warning("Failed to read dump1090")
+  else success
     Run -> Parser : parse_snapshot(resp.json())
     activate Parser
-    loop para cada aeronave
+    loop for each aircraft
       Parser -> Parser : parse_aircraft(raw, now)
       note right
-        descarta hex inválido / "~"
+        discards invalid hex / "~"
         alt_baro|altitude, gs|speed
         ts = now - seen
         pos_ts = now - seen_pos
@@ -33,6 +32,6 @@ loop enquanto o serviço corre
     deactivate Parser
     Run -> Store : store(conn, snap, state)
   end
-  Run -> Run : sleep(intervalo - duração)
+  Run -> Run : sleep(interval - duration)
 end
 @enduml

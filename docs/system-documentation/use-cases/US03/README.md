@@ -1,47 +1,47 @@
-# US03 — Ver a companhia e a rota de um voo
+# US03 — View airline and route of a flight
 
-**Épico:** E1 · **Prioridade:** M · **SP:** 5 · **Estado:** 🟡 backend no Sprint 1, UI no Sprint 2
+**Epic:** E1 · **Priority:** M · **SP:** 5 · **Status:** 🟡 backend in Sprint 1, UI in Sprint 2
 
 ## User Story
 
-> Como utilizador, quero ver a companhia e a rota (origem → destino) de um voo.
+> As a user, I want to view the airline and route (origin → destination) of a flight.
 
-## Critérios de Aceitação
+## Acceptance Criteria
 
-- A rota (companhia, origem → destino) de cada callsign visto é obtida no adsbdb e guardada em `flight_route`.
-- `/aircraft/live`, `/aircraft/{hex}` e `/ws/live` devolvem a rota junto com a posição.
-- Rotas com estado diferente de `ok` (não encontrada / erro) não são devolvidas.
-- *(Sprint 2)* O painel da aeronave mostra a companhia e a rota no formato `OPO → LIS`.
+- The route (airline, origin → destination) of each seen callsign is fetched from adsbdb and stored in `flight_route`.
+- `/aircraft/live`, `/aircraft/{hex}`, and `/ws/live` return the route along with the position.
+- Routes with status other than `ok` (not found / error) are not returned.
+- *(Sprint 2)* The aircraft panel displays the airline and route in `OPO → LIS` format.
 
-## Pré-condições
+## Preconditions
 
-- A aeronave está em `aircraft_live` com um callsign conhecido.
+- The aircraft is in `aircraft_live` with a known callsign.
 
-## Pós-condições
+## Postconditions
 
-- Existe em `flight_route` uma linha para o callsign, com `status` `ok`, `not_found` ou `error`.
+- A row exists in `flight_route` for the callsign, with `status` `ok`, `not_found`, or `error`.
 
-## Cenário Principal
+## Main Success Scenario
 
-1. O worker identifica os callsigns em `aircraft_live` sem rota ou com rota expirada (TTL 7 dias; erros ao fim de 1 h).
-2. Para cada callsign, o sistema consulta `GET /v0/callsign/{callsign}` no adsbdb.
-3. O sistema guarda companhia, origem e destino (ICAO, IATA, nome, coordenadas) em `flight_route`.
-4. O utilizador pede as aeronaves visíveis; o sistema devolve-as com a rota associada.
+1. The worker identifies callsigns in `aircraft_live` without a route or with an expired route (TTL 7 days; errors after 1 h).
+2. For each callsign, the system queries `GET /v0/callsign/{callsign}` on adsbdb.
+3. The system stores airline, origin, and destination (ICAO, IATA, name, coordinates) in `flight_route`.
+4. The user requests visible aircraft; the system returns them with the associated route.
 
-## Fluxos Alternativos / Exceções
+## Alternative Flows / Exceptions
 
-| Passo | Condição | Resposta do sistema |
+| Step | Condition | System response |
 |---|---|---|
-| 2 | adsbdb devolve 404 | Guarda `status = not_found` (cache negativa) |
-| 2 | Falha após todas as tentativas | Guarda `status = error`; repete ao fim de 1 h |
-| 4 | Callsign sem rota `ok` | Campos da rota a `null` |
+| 2 | adsbdb returns 404 | Stores `status = not_found` (negative cache) |
+| 2 | Failure after all attempts | Stores `status = error`; retries after 1 h |
+| 4 | Callsign without `ok` route | Route fields set to `null` |
 
-## Justificação do Desenho
+## Design Rationale
 
-- A rota está associada ao **callsign** e não à aeronave: a mesma aeronave opera vários voos.
-- A API nunca chama APIs externas no pedido do utilizador; lê sempre da BD, o que garante latência baixa e independência das falhas externas.
+- The route is associated with the **callsign** and not the aircraft: the same aircraft operates multiple flights.
+- The API never calls external APIs on user requests; it always reads from the database, ensuring low latency and resilience against external failures.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us03.puml) · ![SSD](svg/ssd_us03.svg)
 - [SD](puml/sd_us03.puml) · ![SD](svg/sd_us03.svg)

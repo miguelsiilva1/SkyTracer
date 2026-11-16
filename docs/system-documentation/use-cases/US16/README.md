@@ -1,20 +1,20 @@
-# US16 — Vista 3D
+# US16 — 3D view
 
-**Épico:** E3 · **Prioridade:** C · **SP:** 8 · **Estado:** ⏳ planeado para o Sprint 4
+**Epic:** E3 · **Priority:** C · **SP:** 8 · **Status:** ⏳ planned for Sprint 4
 
 ## User Story
 
-> Como utilizador, quero uma vista 3D dos voos.
+> As a user, I want a 3D view of flights.
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- O mapa permite inclinação e rotação da câmara.
-- Os aviões são desenhados à sua altitude, com o rasto em 3D.
-- É possível alternar entre vista 2D e 3D sem perder a seleção.
+- The map allows pitch and rotation of the camera.
+- Aircraft are rendered at their altitude, with their track in 3D.
+- It is possible to toggle between 2D and 3D views without losing the current selection.
 
-> Critérios a validar no planeamento do Sprint 4; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 4 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us16.puml) · ![SSD](svg/ssd_us16.svg)
-- SD: a elaborar no planeamento do Sprint 4.
+- SD: to be produced during Sprint 4 planning.

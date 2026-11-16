@@ -1,21 +1,21 @@
-# US11 — Ver informação meteorológica (METAR)
+# US11 — View meteorological information (METAR)
 
-**Épico:** E2 · **Prioridade:** C · **SP:** 2 · **Estado:** ⏳ planeado para o Sprint 4
+**Epic:** E2 · **Priority:** C · **SP:** 2 · **Status:** ⏳ planned for Sprint 4
 
 ## User Story
 
-> Como utilizador, quero ver informação meteorológica discreta (METAR: vento, visibilidade) no painel do aeroporto e um indicador no mapa.
+> As a user, I want to view subtle weather information (METAR: wind, visibility) in the airport panel and an indicator on the map.
 
-## Critérios de Aceitação (proposta)
+## Acceptance Criteria (proposed)
 
-- O METAR dos aeroportos relevantes (pelo menos LPPR) é obtido de uma fonte pública e guardado em cache.
-- O painel do aeroporto mostra vento (direção/intensidade), visibilidade e hora da observação.
-- O mapa mostra um indicador discreto junto ao aeroporto.
-- Se o METAR tiver mais de 2 h, é marcado como desatualizado.
+- METAR for relevant airports (at least LPPR) is fetched from a public source and cached.
+- The airport panel displays wind (direction/speed), visibility, and observation time.
+- The map displays an unobtrusive indicator next to the airport.
+- If the METAR is older than 2 h, it is marked as outdated.
 
-> Critérios a validar no planeamento do Sprint 4; o desenho (SD) é feito nessa altura.
+> Criteria to be validated during Sprint 4 planning; the design (SD) will be produced at that stage.
 
-## Diagramas
+## Diagrams
 
 - [SSD](puml/ssd_us11.puml) · ![SSD](svg/ssd_us11.svg)
-- SD: a elaborar no planeamento do Sprint 4.
+- SD: to be produced during Sprint 4 planning.
