@@ -1,33 +1,30 @@
 @startuml
 autonumber
-participant "fetch_*()" as F
-participant "RateLimitedClient\nget_json(url)" as RL
-participant "httpx.Client" as H
+participant "Enricher" as E
+participant "ApiGate\ngetJson(url, now)" as G
 participant "External API" as Ext
 
-F -> RL : get_json(url)
-activate RL
-loop attempt = 0 .. max_retries (4)
-  RL -> RL : _throttle()
-  note right
-    waits next_allowed - clock()
-    next_allowed = clock() + 1/rps
-  end note
-  RL -> H : get(url)
-  H -> Ext : GET
-  Ext --> H : response
-  H --> RL : resp
+E -> G : ready(now)
+G --> E : now >= nextAllowed
+opt ready
+  E -> G : getJson(url, now)
+  activate G
+  G -> G : nextAllowed = now + 1 s
+  G -> Ext : GET (User-Agent, timeout 10 s)
+  Ext --> G : response
   alt 404
-    RL --> F : None (negative cache)
+    G --> E : not_found (negative cache)
   else 2xx
-    RL --> F : resp.json()
+    G -> G : failures = 0
+    G --> E : ok(json)
   else other 4xx / invalid JSON
-    RL --> F : raise EnrichmentError
-  else 429 / 5xx / TransportError
-    RL -> RL : delay = Retry-After\nor min(base * 2^attempt, 60)
-    RL -> RL : sleep(delay)
+    G --> E : error
+  else 429 / 5xx / network error
+    G -> G : delay = Retry-After\nor min(1 s * 2^failures, 60 s)
+    G -> G : failures++\nnextAllowed = now + delay
+    G --> E : retry
+    note right of E : the item stays pending;\nafter 4 attempts it is cached as "error"
   end
+  deactivate G
 end
-RL --> F : raise EnrichmentError("failed after 5 attempts")
-deactivate RL
 @enduml

@@ -22,13 +22,14 @@ Notes:
 
 ## 2. Class Diagram (CD)
 
-Backend classes and modules (`backend/skytracer/`), with their attributes, operations and dependencies, as implemented.
-Python modules containing only functions are shown with the `<<module>>` stereotype.
+Backend classes and modules (`backend/src/`, TypeScript), with their attributes, operations and dependencies, as implemented.
+Modules containing only functions are shown with the `<<module>>` stereotype and TypeScript interfaces with `<<interface>>`.
 
 ![Class Diagram](svg/CD.svg)
 
 Notes:
 
-- **From DM to CD:** domain concepts are not persistent classes (no ORM is used); they exist as PostgreSQL tables and as immutable *dataclasses* that carry data between layers (`AircraftState`, `AircraftInfo`, `RouteInfo`, `Photo`).
-- **Parsing separated from I/O:** `dump1090`, `adsbdb` and `planespotters` convert JSON into objects without side effects; network access is isolated in `RateLimitedClient` and database access in the service modules (`collector_main`, `worker`, `api_main`).
-- **`Settings`** is the single source of configuration, shared by all services.
+- **From DM to CD:** domain concepts are not persistent classes (no ORM is used); they exist as PostgreSQL tables in Supabase and as plain interfaces that carry data between layers (`AircraftState`, `LiveAircraft`, `AircraftInfo`, `RouteInfo`, `Photo`). The **Live State** exists only in memory (`Collector.live`).
+- **`Tracker`** (Durable Object) is the single always-on component: it owns the `Collector`, the `Enricher` and the `Supabase` client, runs the loop in `alarm()` and answers the API in `fetch()`.
+- **Parsing separated from I/O:** `dump1090`, `adsbdb` and `planespotters` convert JSON into objects without side effects; external HTTP access is isolated in `ApiGate` and database access in `Supabase`.
+- **`Config`** is the single source of configuration, built from the Worker variables and secrets by `loadConfig`.

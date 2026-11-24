@@ -2,40 +2,35 @@
 autonumber
 actor "User" as U
 participant "App Expo\n(Sprint 2)" as App
-participant "ws_live()" as WS
-participant "LiveBroadcaster" as B
-database "PostgreSQL" as DB
+participant "Worker\nfetch()" as W
+participant "Tracker\n<<DurableObject>>" as T
 
 U -> App : open map
-App -> WS : WS connect /ws/live
-activate WS
-WS -> WS : ws.accept()
-WS -> B : fetch()
-B -> DB : LIVE (max_age = 60 s)
-DB --> B : rows
-B --> WS : JSON {ts, aircraft[]}
-WS --> App : initial state
-WS -> B : clients.add(ws)
+App -> W : WS connect /ws/live
+W -> T : forward request
+activate T
+T -> T : WebSocketPair()\nctx.acceptWebSocket(server)
+note right: hibernatable WebSocket:\nkept by the runtime
+T -> T : liveMessage(now)
+T --> App : initial state {ts, aircraft[]}
+T --> W : 101 Switching Protocols
+deactivate T
 App -> U : draws icons (rotation = track_deg)
 
-== Broadcaster loop (single task, created in lifespan) ==
-loop every WS_INTERVAL_SECONDS
-  opt clients exist
-    B -> DB : LIVE
-    DB --> B : rows
-    B -> B : json.dumps(payload)
-    par for each client
-      B -> App : wait_for(send_text(msg), 2 s)
-      alt disconnected / slow
-        B -> B : clients.discard(ws); ws.close()
-      end
+== Collection loop (US01), every 3 s ==
+loop every POLL_INTERVAL
+  T -> T : tick(now)
+  opt ctx.getWebSockets() not empty
+    T -> T : liveMessage(now)\n(aircraft with position ≤ 60 s old)
+    loop for each WebSocket
+      T -> App : send(message)
+      note right: errors ignored: the runtime\nremoves closed sockets
     end
   end
 end
 App -> U : updates positions
 
 == Disconnect ==
-App -> WS : close
-WS -> B : clients.discard(ws)
-deactivate WS
+App -> T : close
+T -> T : webSocketClose(ws)
 @enduml

@@ -16,7 +16,7 @@ The project is managed with **Scrum** in two-week sprints. Priorities follow the
 
 | ID | Epic | Priority | SP | User story |
 |---|---|---|---|---|
-| US01 | E1 | M | 3 | As the system, I want to read the dump1090 `aircraft.json` every second so that aircraft positions are kept up to date. |
+| US01 | E1 | M | 3 | As the system, I want to read the dump1090 `aircraft.json` every few seconds so that aircraft positions are kept up to date. |
 | US02 | E1 | M | 5 | As the system, I want to store every position in PostgreSQL so that a flight history is preserved. |
 | US03 | E1 | M | 5 | As a user, I want to see the airline and route (origin → destination) of a flight. |
 | US04 | E1 | S | 3 | As a user, I want to see the photo, registration and model of an aircraft. |
@@ -41,18 +41,18 @@ The project is managed with **Scrum** in two-week sprints. Priorities follow the
 Status: ✅ done · 🟡 partial (backend done, user interface pending)
 
 **US01** ✅
-- Given that the course receiver's `aircraft.json` is available, the collector reads it every `POLL_INTERVAL_SECONDS`.
+- Given that the course receiver's `aircraft.json` is available, the system reads it every 3 seconds.
 - Fields from both dump1090-mutability (`altitude`, `speed`) and dump1090-fa (`alt_baro`, `gs`) are accepted.
 - If a read fails, the error is logged and the read is retried on the next iteration without stopping the service.
 - The position timestamp is derived from `seen_pos`; positions older than 60 s are not considered current.
 
 **US02** ✅
 - Every aircraft observed is stored in the `aircraft` table with `first_seen` and `last_seen`.
-- Each aircraft's position is stored at most once every `POSITION_MIN_INTERVAL_SECONDS`.
+- Each aircraft's position is stored at most once every 15 seconds.
 - Aircraft without a position do not produce rows in `position`.
 - The same position is never stored twice.
-- The current state of each aircraft is kept in `aircraft_live` and updated on every read.
-- Retention: rows in `position` and `receiver_snapshot` are deleted after `RETENTION_DAYS` (30).
+- The current state of each aircraft is kept in memory and updated on every read.
+- Retention: rows in `position` and `receiver_snapshot` are deleted after 7 days.
 
 **US03** 🟡 (backend in Sprint 1, user interface in Sprint 2)
 - The route (airline, origin → destination) of every callsign observed is fetched from adsbdb and stored in `flight_route`.

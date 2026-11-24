@@ -5,6 +5,6 @@ participant "System" as S
 
 A -> S : openLiveMap()
 activate S
-S --> A : returns visible aircraft (position, track, altitude), updated every second
+S --> A : returns visible aircraft (position, track, altitude), updated every 3 seconds
 deactivate S
 @enduml

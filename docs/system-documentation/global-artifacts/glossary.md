@@ -10,11 +10,12 @@
 | Airport | Facility identified by its ICAO (4-letter, e.g. `LPPR`) and IATA (3-letter, e.g. `OPO`) codes. |
 | Callsign (Flight ID) | Flight identifier transmitted by the aircraft (e.g. `TAP1234`). Links the aircraft to a route. |
 | dump1090 | Mode S/ADS-B decoder. The course receiver publishes its output as `aircraft.json` (*mutability* variant). |
+| Durable Object | Cloudflare Workers component with a single instance, its own memory and storage, and alarms; it runs the SkyTracer collection loop and API (`Tracker`). |
 | Emitter category | Aircraft class transmitted in ADS-B (e.g. `A3` = large aircraft). |
 | Enrichment | Supplementing received data with information from external sources (registration, model, route, photo). |
 | Flight route | Origin → destination pair associated with a callsign, obtained from adsbdb. |
 | ICAO 24-bit address (`hex`) | Unique, permanent identifier assigned to each aircraft, represented as 6 hexadecimal digits. |
-| Live state | Most recent known observation of an aircraft (`aircraft_live` table). |
+| Live state | Most recent known observation of an aircraft, kept in the memory of the `Tracker` Durable Object. |
 | METAR | Routine aeronautical weather report for an airport (wind, visibility, etc.). |
 | MLAT (Multilateration) | Position computed from differences in signal arrival times at several receivers, used when the aircraft does not broadcast an ADS-B position. |
 | Mode S | Secondary surveillance radar mode in which each aircraft has its own address; ADS-B is transmitted in Mode S messages (*Extended Squitter*). |
@@ -25,7 +26,7 @@
 | Receiver snapshot | Summary of one `aircraft.json` read: total messages, total aircraft and aircraft with a position. |
 | Registration | Administrative identifier of an aircraft (e.g. `CS-TUA`). |
 | Replay | Reproduction of the airspace at a past instant from the stored positions (US12). |
-| Retention | Period during which historical data is kept (30 days by default). |
+| Retention | Period during which historical data is kept (7 days). |
 | RSSI (Received Signal Strength Indicator) | Strength of the received signal, in dBFS (values closer to 0 indicate a stronger signal). |
 | Squawk | 4-digit octal transponder code assigned by air traffic control. `7500` unlawful interference, `7600` radio failure, `7700` emergency. |
 | Track | (1) Direction of movement relative to true north, in degrees. (2) Time-ordered sequence of positions of an aircraft (trail). |

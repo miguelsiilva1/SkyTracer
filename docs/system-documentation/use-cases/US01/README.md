@@ -4,11 +4,11 @@
 
 ## User Story
 
-> As the system, I want to read `aircraft.json` from dump1090 every second so that I have up-to-date positions.
+> As the system, I want to read `aircraft.json` from dump1090 every few seconds so that I have up-to-date positions.
 
 ## Acceptance Criteria
 
-- The collector reads `aircraft.json` every `POLL_INTERVAL_SECONDS` (1 s).
+- The system reads `aircraft.json` every 3 s (alarm of the `Tracker` Durable Object).
 - Accepts fields from dump1090-mutability (`altitude`, `speed`, `vert_rate`) and dump1090-fa (`alt_baro`, `gs`, `baro_rate`).
 - If reading fails, it logs the error and retries on the next iteration without terminating.
 - Position timestamp is calculated from `seen_pos`; positions older than 60 s are not considered current.
@@ -24,10 +24,10 @@
 
 ## Main Success Scenario
 
-1. The timer triggers a new read.
+1. The Durable Object alarm triggers a new read and schedules the next one.
 2. The system requests `aircraft.json` from dump1090.
 3. The system normalises each aircraft (field names, absolute timestamps, altitude/ground).
-4. The system hands over the snapshot to persistence (US02) and waits until the next cycle.
+4. The system hands over the snapshot to the collector (US02) and waits for the next alarm.
 
 ## Alternative Flows / Exceptions
 
@@ -39,9 +39,10 @@
 
 ## Design Rationale
 
-- `dump1090.py` uses only the standard library and pure functions (`parse_snapshot`, `parse_aircraft`), allowing it to be tested without network or database (`tests/test_dump1090.py`).
+- `dump1090.ts` contains only pure functions (`parseSnapshot`, `parseAircraft`), allowing it to be tested without network or database (`test/dump1090.test.ts`).
 - Timestamps are calculated as `now − seen` / `now − seen_pos`, using the receiver's own `now`, to avoid saving the same old position with different timestamps.
-- The loop compensates for elapsed time (`sleep(interval - duration)`) to maintain the 1 Hz frequency.
+- The next alarm is scheduled **before** the read, so the loop survives any failure in the iteration.
+- The 3 s interval keeps the Cloudflare free plan within its daily limits (one Durable Object request and one storage write per alarm, about 29,000 per day out of 100,000).
 
 ## Diagrams
 

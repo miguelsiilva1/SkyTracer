@@ -1,45 +1,46 @@
 @startuml
 autonumber
-participant "run_once()" as W
-participant "enrich_aircraft()" as EA
+participant "Enricher\nstep()" as E
 participant "adsbdb" as A
 participant "planespotters" as P
-database "PostgreSQL" as DB
+participant "Supabase\n(client)" as S
+database "Supabase\nPostgreSQL" as DB
 actor "User" as U
-participant "API FastAPI\naircraft_detail()" as API
+participant "Tracker\nfetch()" as API
 
-== Enrichment (asynchronous) ==
-W -> DB : AIRCRAFT_TODO (visible, to be enriched or expired)
-DB --> W : hexes[]
-loop for each hex
-  W -> EA : enrich_aircraft(conn, clients, hex)
-  activate EA
-  EA -> A : fetch_aircraft(hex)
-  A --> EA : AircraftInfo | None
-  EA -> P : fetch_photo(hex)
-  P --> EA : Photo | None
-  alt EnrichmentError
-    EA -> EA : status = "error"
+== Enrichment (one step per loop iteration, every 3 s) ==
+E -> S : select aircraft where hex in (hexes not cached)
+S -> DB : GET /rest/v1/aircraft
+DB --> E : cached rows
+opt a visible aircraft to be enriched or expired\nand both ApiGates ready
+  E -> A : GET /aircraft/{hex}
+  A --> E : ok | not_found | retry | error
+  E -> P : GET /hex/{hex}
+  P --> E : ok | not_found | retry | error
+  alt retry (fewer than 4 attempts)
+    E -> E : try again on a later step
+  else error
+    E -> E : status = "error"
   else info or photo
-    EA -> EA : status = "ok"
+    E -> E : status = "ok"
   else none
-    EA -> EA : status = "not_found"
+    E -> E : status = "not_found"
   end
-  EA -> DB : UPDATE aircraft SET col = COALESCE(new, col), ...\n+ COMMIT
-  deactivate EA
+  E -> S : rpc("save_aircraft_enrichment", row)
+  S -> DB : upsert aircraft SET col = COALESCE(new, col), ...
+  E -> E : aircraft.set(hex, row)
 end
 
 == Query by user ==
 U -> API : GET /aircraft/{hex}
 activate API
 API -> API : validates ^[0-9a-fA-F]{6}$
-API -> DB : AIRCRAFT (hex)
+API -> DB : select aircraft where hex = {hex}
 DB --> API : row | empty
 alt empty
   API --> U : 404 "Unknown aircraft"
 else found
-  API -> DB : AIRCRAFT_LIVE (hex)
-  DB --> API : live state | empty
+  API -> API : live state + route (memory) | null
   API --> U : 200 { registration, type_name, photo_url,\nphoto_credit, ..., live: {...} | null }
 end
 deactivate API

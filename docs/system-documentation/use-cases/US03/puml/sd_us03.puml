@@ -1,42 +1,41 @@
 @startuml
 autonumber
-participant "enrichment\nrun_once()" as W
-participant "enrich_route()" as ER
-participant "adsbdb.fetch_route()" as A
-participant "RateLimitedClient" as RL
+participant "Tracker\ntick()" as T
+participant "Enricher" as E
+participant "ApiGate\n(adsbdb)" as G
 participant "adsbdb\n<<external>>" as Ext
-database "PostgreSQL" as DB
+participant "Supabase\n(client)" as S
+database "Supabase\nPostgreSQL" as DB
 actor "User" as U
-participant "API FastAPI\nlive_aircraft()" as API
+participant "Tracker\nfetch()" as API
 
-== Enrichment (asynchronous, every 5 s) ==
-W -> DB : ROUTES_TODO (callsigns without route or expired)
-DB --> W : callsigns[]
-loop for each callsign
-  W -> ER : enrich_route(conn, clients, callsign)
-  activate ER
-  ER -> A : fetch_route(client, url, callsign)
-  A -> RL : get_json(/callsign/{callsign})
-  RL -> Ext : GET (throttled, retry)
-  Ext --> RL : 200 JSON | 404
-  RL --> A : payload | None
-  A --> ER : RouteInfo | None
-  alt EnrichmentError
-    ER -> ER : status = "error"
-  else RouteInfo
-    ER -> ER : status = "ok"
-  else None
-    ER -> ER : status = "not_found"
+== Enrichment (one step per loop iteration, every 3 s) ==
+T -> E : step(live aircraft, now)
+activate E
+E -> S : select flight_route\nwhere callsign in (callsigns not cached)
+S -> DB : GET /rest/v1/flight_route
+DB --> E : cached routes
+note right of E: callsigns without a row are\nmarked as pending
+opt no aircraft pending and a route is pending or expired\nand ApiGate.ready(now)
+  E -> G : getJson(/callsign/{callsign}, now)
+  G -> Ext : GET (at most 1 per second, backoff on errors)
+  Ext --> G : 200 JSON | 404 | 429 / 5xx
+  G --> E : ok | not_found | retry | error
+  alt retry (fewer than 4 attempts)
+    E -> E : try again on a later step
+  else
+    E -> E : status = ok | not_found | error
+    E -> S : rpc("save_route", route)
+    S -> DB : upsert flight_route
+    E -> E : routes.set(callsign, route)
   end
-  ER -> DB : UPSERT_ROUTE + COMMIT
-  deactivate ER
 end
+deactivate E
 
 == Query by user ==
 U -> API : GET /aircraft/live
 activate API
-API -> DB : LIVE (aircraft_live\nLEFT JOIN aircraft\nLEFT JOIN flight_route status = 'ok')
-DB --> API : rows
+API -> API : live aircraft (memory)\n+ enrichment cache\n+ route if status = 'ok'
 API --> U : 200 [ { hex, callsign, ..., airline_name,\n origin_iata, dest_iata, ... } ]
 deactivate API
 @enduml
