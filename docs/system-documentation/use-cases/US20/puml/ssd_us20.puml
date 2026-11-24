@@ -1,0 +1,15 @@
+@startuml
+autonumber
+actor "User" as A
+participant "System" as S
+
+A -> S : signIn(email | GitHub | Google)
+activate S
+S --> A : returns session and saved preferences
+deactivate S
+
+A -> S : saveFavourite(hex | callsign)
+activate S
+S --> A : returns favourites, synchronised across devices
+deactivate S
+@enduml

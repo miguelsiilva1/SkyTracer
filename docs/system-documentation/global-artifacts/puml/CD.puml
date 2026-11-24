@@ -16,6 +16,8 @@ package "index" {
 package "config" {
   class Config <<interface>> {
     + dump1090Url : string
+    + networkUrl : string
+    + networkIntervalMs : number
     + pollIntervalMs : number
     + positionMinIntervalMs : number
     + flushIntervalMs : number
@@ -40,6 +42,8 @@ package "tracker" {
     - enricher : Enricher
     - lastFlush : number
     - lastRead : number | null
+    - network : Map<string, NetworkAircraft>
+    - lastNetworkRead : number | null
     --
     + alarm() : void <<async>>
     + tick(now : number) : void <<async>>
@@ -48,7 +52,8 @@ package "tracker" {
     + fetch(request : Request) : Response <<async>>
     + webSocketMessage() : void <<async>>
     + webSocketClose(ws : WebSocket) : void <<async>>
-    - present(live : LiveAircraft) : object
+    - readNetwork(now : number) : void <<async>>
+    - present(live : LiveAircraft, source, network?) : object
     - liveMessage(now : number) : string
   }
 }
@@ -86,6 +91,26 @@ package "dump1090" {
     + parseAircraft(raw : object, now : number) : AircraftState | null
     + hasPosition(a : AircraftState) : boolean
     + hasFreshPosition(a : AircraftState) : boolean
+  }
+}
+
+package "network" {
+  class NetworkExtra <<interface>> {
+    + alt_geom_ft, tas_kt, ias_kt : number | null
+    + mach : number | null
+    + wind_dir_deg, wind_speed_kt : number | null
+    + oat_c : number | null
+  }
+  class NetworkAircraft <<interface>> {
+    + state : AircraftState
+    + registration, icao_type, type_name : string | null
+    + extra : NetworkExtra
+  }
+  class network <<module>> {
+    + NETWORK_NAME = "adsb.fi"
+    --
+    + parseNetwork(payload : unknown) : {now, aircraft : NetworkAircraft[]}
+    + hasExtra(e : NetworkExtra) : boolean
   }
 }
 
@@ -170,8 +195,9 @@ package "enrichment" {
     + aircraft : Map<string, AircraftEnrichment>
     + routes : Map<string, RouteEnrichment | null>
     - retries : Map<string, number>
+    - persist : Set<string>
     --
-    + step(live : Iterable<LiveAircraft>, now : number) : void <<async>>
+    + step(receiver : Iterable<InView>, now : number, others : Iterable<InView>) : void <<async>>
     - loadCached(hexes, callsigns) : void <<async>>
     - settle(key, results : Fetched[]) : EnrichStatus | null
     - enrichAircraft(hex : string, now : number) : void <<async>>
@@ -199,6 +225,12 @@ Tracker "1" *-- "1" Supabase
 Tracker ..> config : loadConfig
 Tracker ..> dump1090 : parseSnapshot
 Tracker ..> Config
+Tracker "1" o-- "*" NetworkAircraft : network (live only)
+Tracker ..> network : parseNetwork
+network ..> NetworkAircraft : creates
+network ..> dump1090 : parseAircraft
+NetworkAircraft *-- NetworkExtra
+NetworkAircraft *-- AircraftState
 
 Snapshot "1" *-- "*" AircraftState
 dump1090 ..> Snapshot : creates

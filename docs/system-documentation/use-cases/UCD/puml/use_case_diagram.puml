@@ -17,6 +17,8 @@ U <|-- A
 
 rectangle "SkyTracer" {
   package "E5 — Cross-platform application" {
+    usecase "US20 Sign in" as UC20
+    usecase "US21 Choose language" as UC21
     usecase "US19 Save favourites" as UC19
     usecase "US18 Use on web, Android and iOS" as UC18
   }
@@ -31,6 +33,8 @@ rectangle "SkyTracer" {
     usecase "US12 Replay" as UC12
   }
   package "E2 — Map and visualisation" {
+    usecase "US23 Aircraft from adsb.fi" as UC23
+    usecase "US22 Extended flight data" as UC22
     usecase "US07 View aircraft details" as UC07
     usecase "US06 View live map" as UC06
     usecase "US11 View METAR" as UC11
@@ -53,6 +57,10 @@ actor "dump1090\n<<external system>>" as D
 
 ' Primary actors
 A --> UC17
+U --> UC20
+U --> UC21
+U --> UC22
+U --> UC23
 U --> UC19
 U --> UC18
 U --> UC16

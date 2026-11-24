@@ -49,11 +49,13 @@ The design fits the free plans: the live state never touches storage (the Durabl
 
 ## 3. Data source
 
-All positions come exclusively from the course receiver:
+| Source | Used for | Stored |
+|---|---|---|
+| Course receiver, `https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json` (dump1090-mutability) | Positions and flight data of every aircraft received in Porto | Yes: history, replay, statistics and coverage use **only** this source |
+| [adsb.fi](https://adsb.fi) open data API (community ADS-B network, 250 NM around Porto) | Aircraft beyond the reach of the course receiver, and parameters the receiver does not decode (GPS altitude, true and indicated airspeed, Mach, wind, temperature) | No: shown live only |
+| [adsbdb](https://www.adsbdb.com) and [planespotters.net](https://www.planespotters.net) | Enrichment: registration, model, operator, route and photo | As a cache |
 
-`https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json` (dump1090-mutability)
-
-External APIs are used only to **enrich** the aircraft actually received by this receiver.
+Every live aircraft carries its source (`"receiver"` or `"adsb.fi"`), and the application distinguishes them on the map, in the legend and in the aircraft panel. adsb.fi data is used under its terms (personal, non-commercial use, at most one request per second, credited with a link).
 
 ## 4. Backend
 
@@ -67,8 +69,8 @@ External APIs are used only to **enrich** the aircraft actually received by this
 
 | Endpoint | Description |
 |---|---|
-| `GET /health` | Service health check, with the time of the last successful receiver read and the number of live aircraft |
-| `GET /aircraft/live?max_age_seconds=60` | Aircraft with a recent position, including enrichment (registration, model, photo) and route (origin and destination) |
+| `GET /health` | Service health check: time of the last successful read and number of aircraft, for the receiver and for adsb.fi |
+| `GET /aircraft/live?max_age_seconds=60` | Aircraft with a recent position, including enrichment (registration, model, photo) and route (origin and destination); each has a `source` and, when available, `extra` parameters from adsb.fi |
 | `GET /aircraft/{hex}` | Aircraft data and its current state (`live`, `null` if it is not currently being received) |
 | `GET /aircraft/{hex}/track?minutes=60` | Track: positions stored in the last *N* minutes (maximum 1440) |
 | `WS /ws/live` | Sends the current state on connection and then every ~3 s, in the format `{"ts": ..., "aircraft": [...]}`, identical to `/aircraft/live` |
@@ -94,7 +96,7 @@ npm install
 npm run dev      # Worker and Durable Object at http://localhost:8787
 ```
 
-The local Worker writes to the Supabase project configured in Wrangler's local secrets file.
+The local Worker reads the Supabase project and its secret key from the repository's local `.env` file, which is never committed.
 
 ## 6. Testing
 

@@ -2,17 +2,22 @@
  * Tracker Durable Object: the single always-on part of SkyTracer.
  *
  * An alarm fires every POLL_INTERVAL: it reads aircraft.json, updates the live state (kept in
- * memory), enriches one aircraft or route, flushes the buffered history to Supabase every
- * FLUSH_INTERVAL and pushes the live state to the WebSocket clients. The API answers live data
- * from memory and history from Supabase, so it keeps working (last known state and history)
- * even if the receiver or the external APIs fail.
+ * memory), reads the adsb.fi network every NETWORK_INTERVAL, enriches one aircraft or route,
+ * flushes the buffered history to Supabase every FLUSH_INTERVAL and pushes the live state to the
+ * WebSocket clients. The API answers live data from memory and history from Supabase, so it keeps
+ * working (last known state and history) even if the receiver or the external APIs fail.
+ *
+ * Every live aircraft carries its `source`: "receiver" (the course receiver in Porto) or
+ * "adsb.fi" (seen only by the network, shown live and never stored). Receiver aircraft may also
+ * carry `extra` parameters from adsb.fi, labelled with `extra_source`.
  */
 import { DurableObject } from "cloudflare:workers";
 import { Collector, type LiveAircraft } from "./collector";
 import { type Config, loadConfig } from "./config";
-import { parseSnapshot } from "./dump1090";
+import { type AircraftState, parseSnapshot } from "./dump1090";
 import { Enricher } from "./enrichment/enricher";
 import { ApiGate } from "./enrichment/http";
+import { hasExtra, NETWORK_NAME, type NetworkAircraft, parseNetwork } from "./network";
 import { Supabase } from "./supabase";
 
 const ADSBDB_URL = "https://api.adsbdb.com/v0";
@@ -29,6 +34,9 @@ export class Tracker extends DurableObject<Env> {
 	private readonly enricher: Enricher;
 	private lastFlush = 0;
 	private lastRead: number | null = null;
+	private network = new Map<string, NetworkAircraft>();
+	private lastNetworkRead: number | null = null;
+	private lastNetworkAttempt = 0;
 
 	constructor(ctx: DurableObjectState, env: Env) {
 		super(ctx, env);
@@ -75,8 +83,14 @@ export class Tracker extends DurableObject<Env> {
 			console.warn(`dump1090 read failed: ${err}`);
 		}
 
+		if (this.cfg.networkUrl && now - this.lastNetworkAttempt >= this.cfg.networkIntervalMs) {
+			this.lastNetworkAttempt = now;
+			await this.readNetwork(now);
+		}
+
 		try {
-			await this.enricher.step(this.collector.live.values(), now);
+			const networkOnly = [...this.network.values()].map((n) => n.state).filter((s) => !this.collector.live.has(s.hex));
+			await this.enricher.step(this.collector.live.values(), now, networkOnly);
 		} catch (err) {
 			console.warn(`enrichment failed: ${err}`);
 		}
@@ -99,6 +113,22 @@ export class Tracker extends DurableObject<Env> {
 		}
 	}
 
+	/** Replaces the network snapshot; on failure the previous one simply ages out. */
+	private async readNetwork(now: number): Promise<void> {
+		try {
+			const resp = await fetch(this.cfg.networkUrl, {
+				headers: { "User-Agent": this.cfg.userAgent },
+				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
+			});
+			if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
+			const { aircraft } = parseNetwork(await resp.json());
+			this.network = new Map(aircraft.map((n) => [n.state.hex, n]));
+			this.lastNetworkRead = now;
+		} catch (err) {
+			console.warn(`${NETWORK_NAME} read failed: ${err}`);
+		}
+	}
+
 	/** Writes the buffered history to Supabase; on failure it is kept for the next flush. */
 	async flush(): Promise<void> {
 		const batch = this.collector.takeBatch();
@@ -117,21 +147,32 @@ export class Tracker extends DurableObject<Env> {
 
 	// --- API --------------------------------------------------------------------------
 
-	/** Live aircraft with a recent position, with enrichment and route. */
+	/**
+	 * Live aircraft with a recent position, with enrichment and route. The course receiver has
+	 * priority: its aircraft come first and always keep its position; then come the aircraft
+	 * positioned only by the adsb.fi network.
+	 */
 	liveAircraft(maxAgeS: number, now: number) {
 		const minPos = now - maxAgeS * 1000;
-		return [...this.collector.live.values()]
-			.filter((a) => a.lat !== null && a.posAt !== null && a.posAt > minPos)
-			.sort((a, b) => a.hex.localeCompare(b.hex))
-			.map((a) => this.present(a));
+		const fresh = (posAt: number | null, lat: number | null) => lat !== null && posAt !== null && posAt > minPos;
+		const receiver = [...this.collector.live.values()].filter((a) => fresh(a.posAt, a.lat));
+		const shown = new Set(receiver.map((a) => a.hex));
+		const network = [...this.network.values()].filter((n) => !shown.has(n.state.hex) && fresh(n.state.posTs, n.state.lat));
+		const byHex = <T extends { hex: string }>(a: T, b: T) => a.hex.localeCompare(b.hex);
+		return [
+			...receiver.sort(byHex).map((a) => this.present(a, "receiver")),
+			...network.map((n) => fromNetwork(n.state)).sort(byHex).map((l) => this.present(l, NETWORK_NAME)),
+		];
 	}
 
-	private present(l: LiveAircraft) {
+	private present(l: LiveAircraft, source: "receiver" | typeof NETWORK_NAME, n = this.network.get(l.hex)) {
 		const e = this.enricher.aircraft.get(l.hex);
 		const r = l.callsign ? this.enricher.routes.get(l.callsign) : null;
 		const route = r && r.status === "ok" ? r : null;
+		const extra = n && hasExtra(n.extra) ? n.extra : null;
 		return {
 			hex: l.hex,
+			source,
 			callsign: l.callsign,
 			lat: l.lat,
 			lon: l.lon,
@@ -146,9 +187,9 @@ export class Tracker extends DurableObject<Env> {
 			mlat: l.mlat,
 			seen_at: iso(l.seenAt),
 			pos_at: iso(l.posAt),
-			registration: e?.registration ?? null,
-			icao_type: e?.icao_type ?? null,
-			type_name: e?.type_name ?? null,
+			registration: e?.registration ?? n?.registration ?? null,
+			icao_type: e?.icao_type ?? n?.icao_type ?? null,
+			type_name: e?.type_name ?? n?.type_name ?? null,
 			manufacturer: e?.manufacturer ?? null,
 			operator: e?.operator ?? null,
 			country: e?.country ?? null,
@@ -168,6 +209,8 @@ export class Tracker extends DurableObject<Env> {
 			dest_name: route?.dest_name ?? null,
 			dest_lat: route?.dest_lat ?? null,
 			dest_lon: route?.dest_lon ?? null,
+			extra,
+			extra_source: extra ? NETWORK_NAME : null,
 		};
 	}
 
@@ -181,7 +224,12 @@ export class Tracker extends DurableObject<Env> {
 		const path = url.pathname;
 
 		if (path === "/health") {
-			return Response.json({ status: "ok", last_read: iso(this.lastRead), aircraft_live: this.collector.live.size });
+			return Response.json({
+				status: "ok",
+				last_read: iso(this.lastRead),
+				aircraft_live: this.collector.live.size,
+				network: { source: NETWORK_NAME, last_read: iso(this.lastNetworkRead), aircraft: this.network.size },
+			});
 		}
 
 		if (path === "/ws/live") {
@@ -217,9 +265,14 @@ export class Tracker extends DurableObject<Env> {
 				"aircraft",
 				`select=hex,registration,icao_type,type_name,manufacturer,operator,country,category,photo_url,photo_credit,photo_link,enrich_status,enriched_at,first_seen,last_seen&hex=eq.${hex}`,
 			);
-			if (!rows.length) return Response.json({ detail: "Unknown aircraft" }, { status: 404 });
 			const live = this.collector.live.get(hex);
-			return Response.json({ ...rows[0], live: live ? this.present(live) : null });
+			if (!rows.length) {
+				// aircraft seen only by the network: nothing is stored about it
+				const n = !live ? this.network.get(hex) : undefined;
+				if (n) return Response.json({ hex, source: NETWORK_NAME, live: this.present(fromNetwork(n.state), NETWORK_NAME, n) });
+				return Response.json({ detail: "Unknown aircraft" }, { status: 404 });
+			}
+			return Response.json({ ...rows[0], live: live ? this.present(live, "receiver") : null });
 		}
 
 		return Response.json({ detail: "Not found" }, { status: 404 });
@@ -236,6 +289,27 @@ export class Tracker extends DurableObject<Env> {
 			// already closed
 		}
 	}
+}
+
+/** Live-state view of an aircraft known only from the network. */
+function fromNetwork(s: AircraftState): LiveAircraft {
+	return {
+		hex: s.hex,
+		seenAt: s.ts,
+		posAt: s.posTs,
+		callsign: s.callsign,
+		lat: s.lat,
+		lon: s.lon,
+		altitudeFt: s.altitudeFt,
+		onGround: s.onGround,
+		speedKt: s.speedKt,
+		trackDeg: s.trackDeg,
+		vertRateFpm: s.vertRateFpm,
+		squawk: s.squawk,
+		category: s.category,
+		rssiDbfs: null, // signal strength refers to the course receiver only
+		mlat: s.mlat,
+	};
 }
 
 function intParam(url: URL, name: string, fallback: number, min: number, max: number): number | null {

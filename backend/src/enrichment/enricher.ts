@@ -6,7 +6,6 @@
  * too, so it is not requested again; errors are retried after one hour. At most one request
  * per API is made on each tick, which keeps well below one request per second per API.
  */
-import type { LiveAircraft } from "../collector";
 import { type Supabase, inList } from "../supabase";
 import { type AircraftInfo, type RouteInfo, parseAircraft, parseRoute } from "./adsbdb";
 import type { ApiGate, Fetched } from "./http";
@@ -32,6 +31,12 @@ export interface EnricherOptions {
 	planespottersUrl: string;
 	aircraftTtlMs: number;
 	routeTtlMs: number;
+}
+
+/** What the enricher needs from an aircraft in view. */
+export interface InView {
+	hex: string;
+	callsign: string | null;
 }
 
 export interface Apis {
@@ -92,6 +97,7 @@ export class Enricher {
 	readonly aircraft = new Map<string, AircraftEnrichment>();
 	readonly routes = new Map<string, RouteEnrichment | null>(); // null = no row in the database yet
 	private readonly retries = new Map<string, number>();
+	private readonly persist = new Set<string>();
 
 	constructor(
 		private readonly db: Supabase,
@@ -99,11 +105,23 @@ export class Enricher {
 		private readonly opts: EnricherOptions,
 	) {}
 
-	/** One pass: loads unknown keys from the database and makes at most one lookup per API. */
-	async step(live: Iterable<LiveAircraft>, now: number): Promise<void> {
+	/**
+	 * One pass: loads unknown keys from the database and makes at most one lookup per API.
+	 * Aircraft seen by the receiver come first; `others` (seen only by the adsb.fi network) are
+	 * enriched afterwards and their aircraft data is kept in memory only, so the database holds
+	 * nothing about aircraft the receiver never saw.
+	 */
+	async step(receiver: Iterable<InView>, now: number, others: Iterable<InView> = []): Promise<void> {
 		const hexes: string[] = [];
 		const callsigns = new Set<string>();
-		for (const a of live) {
+		this.persist.clear();
+		for (const a of receiver) {
+			hexes.push(a.hex);
+			this.persist.add(a.hex);
+			if (a.callsign) callsigns.add(a.callsign);
+		}
+		for (const a of others) {
+			if (this.persist.has(a.hex)) continue;
 			hexes.push(a.hex);
 			if (a.callsign) callsigns.add(a.callsign);
 		}
@@ -125,18 +143,40 @@ export class Enricher {
 		if (callsign && adsbdb.ready(now)) await this.enrichRoute(callsign, now);
 	}
 
+	/**
+	 * Loads the cached rows of keys not yet in memory. If the database is unreachable the keys are
+	 * treated as not cached, so photos and routes still come from the external APIs.
+	 */
 	private async loadCached(hexes: string[], callsigns: Set<string>): Promise<void> {
 		const newHexes = hexes.filter((h) => !this.aircraft.has(h)).slice(0, LOOKUP_BATCH);
 		if (newHexes.length) {
-			const rows = await this.db.select<AircraftEnrichment>("aircraft", `select=${AIRCRAFT_COLUMNS}&hex=in.${inList(newHexes)}`);
+			const rows = await this.cached<AircraftEnrichment>("aircraft", `select=${AIRCRAFT_COLUMNS}&hex=in.${inList(newHexes)}`);
 			for (const h of newHexes) this.aircraft.set(h, pending(h));
 			for (const r of rows) this.aircraft.set(r.hex.trim(), { ...r, hex: r.hex.trim() });
 		}
 		const newCallsigns = [...callsigns].filter((c) => !this.routes.has(c)).slice(0, LOOKUP_BATCH);
 		if (newCallsigns.length) {
-			const rows = await this.db.select<RouteEnrichment>("flight_route", `select=*&callsign=in.${inList(newCallsigns)}`);
+			const rows = await this.cached<RouteEnrichment>("flight_route", `select=*&callsign=in.${inList(newCallsigns)}`);
 			for (const c of newCallsigns) this.routes.set(c, null);
 			for (const r of rows) this.routes.set(r.callsign, r);
+		}
+	}
+
+	private async cached<T>(table: string, query: string): Promise<T[]> {
+		try {
+			return await this.db.select<T>(table, query);
+		} catch (err) {
+			console.warn(`enrichment cache unavailable (${table}): ${err}`);
+			return [];
+		}
+	}
+
+	/** Saves a result; a database failure only loses the persistent copy, not the memory one. */
+	private async save(fn: string, row: object): Promise<void> {
+		try {
+			await this.db.rpc(fn, { p: row });
+		} catch (err) {
+			console.warn(`could not save enrichment (${fn}): ${err}`);
 		}
 	}
 
@@ -171,7 +211,7 @@ export class Enricher {
 		}
 		row.enrich_status = status;
 		row.enriched_at = new Date(now).toISOString();
-		await this.db.rpc("save_aircraft_enrichment", { p: row });
+		if (this.persist.has(hex)) await this.save("save_aircraft_enrichment", row);
 		// keep values already known when this lookup brought nothing new (same as the database)
 		const prev = this.aircraft.get(hex);
 		const merged = { ...row };
@@ -188,7 +228,7 @@ export class Enricher {
 		const route = status === "ok" && result.kind === "ok" ? parseRoute(result.data) : null;
 		if (status === "ok" && !route) status = "not_found";
 		const row: RouteEnrichment = { callsign, ...EMPTY_ROUTE, ...route, status, fetched_at: new Date(now).toISOString() };
-		await this.db.rpc("save_route", { p: row });
+		await this.save("save_route", row);
 		this.routes.set(callsign, row);
 	}
 }
