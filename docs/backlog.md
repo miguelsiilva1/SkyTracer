@@ -35,6 +35,10 @@ The project is managed with **Scrum** in two-week sprints. Priorities follow the
 | US17 | E4 | M | 5 | As an evaluator, I want a receiver coverage map (range per bearing and RSSI) to identify obstacles that attenuate or block the signal. |
 | US18 | E5 | M | 8 | As a user, I want to use the application on the web, Android and iOS with the same features. |
 | US19 | E5 | C | 2 | As a user, I want to save favourite flights or aircraft. |
+| US21 | E5 | S | 2 | As a user, I want to use the application in English or Portuguese. |
+| US22 | E2 | C | 8 | As a user, I want to see the full data of a flight and its aircraft (schedule and actual times, serial number, age, country of registration, FIR and all flight parameters). |
+| US23 | E2 | S | 3 | As a user, I want to see aircraft beyond the receiver's reach from a free community network, clearly distinguished from those received in Porto. |
+| US20 | E5 | C | 8 | As a user, I want to create an account and sign in so that my favourites, alerts and preferences follow me across devices. *(future, after the course delivery)* |
 
 ## 3. Acceptance Criteria
 

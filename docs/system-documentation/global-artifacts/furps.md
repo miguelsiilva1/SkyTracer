@@ -6,7 +6,7 @@ This document gathers the requirements that are not captured by individual user 
 
 _Features that are not specific to a single use case._
 
-- **Data source:** all aircraft positions come exclusively from the dump1090 receiver provided by the course (`aircraft.json`, dump1090-mutability). External sources are used only to enrich aircraft actually received.
+- **Data sources:** the history (tracks, replay, statistics and coverage) comes exclusively from the dump1090 receiver provided by the course (`aircraft.json`, dump1090-mutability). The adsb.fi community network complements the live map with aircraft beyond the receiver's reach and with parameters the receiver does not decode; this data is never stored, and every aircraft and data group is labelled with its source.
 - **Enrichment:** aircraft identification and routes are obtained from adsbdb; photos from planespotters.net, always credited to their photographer with a link to the original page.
 - **History:** the positions received are stored (one every 15 seconds per aircraft), enabling track display (US10), replay (US12), statistics (US15) and coverage analysis (US17).
 - **Real-time updates:** the current state of the airspace is pushed to clients through a WebSocket, without polling.

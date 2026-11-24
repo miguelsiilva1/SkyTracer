@@ -13,6 +13,7 @@
 - Only aircraft with a position received ≤ 60 s ago are sent.
 - *(Sprint 2)* The app draws each aircraft on the MapLibre map with its icon rotated according to `track_deg`.
 - *(Sprint 2)* If the connection drops, the app reconnects automatically.
+- *(Sprint 2)* The map has three themes, remembered on the device: light (chart paper), dark and standard (street map); aircraft, track and legend share one altitude colour scale.
 
 ## Preconditions
 
