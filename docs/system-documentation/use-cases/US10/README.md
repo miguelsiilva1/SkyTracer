@@ -37,8 +37,8 @@
 
 ## Design Rationale
 
-- The index `position (hex, ts DESC)` makes the query proportional to the number of points for the aircraft, rather than table size.
-- Track resolution is 1 point / 5 s (US02 threshold), sufficient for a smooth line.
+- The index `position (hex, ts)` makes the query proportional to the number of points for the aircraft, rather than table size.
+- Track resolution is 1 point / 15 s (US02 threshold), sufficient for a smooth line.
 
 ## Diagrams
 

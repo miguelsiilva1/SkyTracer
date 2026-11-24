@@ -2,17 +2,20 @@
 autonumber
 actor "User" as U
 participant "App Expo\n(Sprint 2)" as App
-participant "aircraft_detail()" as API
-database "PostgreSQL" as DB
+participant "Tracker\nfetch()" as API
+database "Supabase\nPostgreSQL" as DB
 
 U -> App : taps aircraft icon
 App -> API : GET /aircraft/{hex}
 activate API
-API -> DB : AIRCRAFT (hex)
+API -> DB : select aircraft where hex = {hex}
 DB --> API : identification + photo
-API -> DB : AIRCRAFT_LIVE (hex)
-DB --> API : live state + route
-API --> App : 200 { ..., live: {...} }
+alt unknown aircraft
+  API --> App : 404
+else
+  API -> API : live state + route (memory)
+  API --> App : 200 { ..., live: {...} }
+end
 deactivate API
 App -> U : displays panel
 loop messages from /ws/live (US06)

@@ -1,37 +1,39 @@
 @startuml
 autonumber
-participant "collector.__main__\nrun()" as Run
-participant "httpx.Client" as Http
+participant "Cloudflare\n<<runtime>>" as CF
+participant "Tracker\n<<DurableObject>>" as T
 participant "dump1090\n<<external>>" as D
-participant "dump1090.py\nparse_snapshot()" as Parser
-participant "store()\n(US02)" as Store
+participant "dump1090.ts\nparseSnapshot()" as Parser
+participant "Collector\ningest()\n(US02)" as C
 
-loop while the service runs
-  Run -> Http : get(settings.dump1090_url)
-  activate Http
-  Http -> D : GET aircraft.json
-  D --> Http : 200 JSON
-  Http --> Run : resp
-  deactivate Http
+loop every POLL_INTERVAL (3 s)
+  CF -> T : alarm()
+  activate T
+  T -> T : storage.setAlarm(now + 3 s)
+  note right: scheduled first, so the loop\nsurvives any failure below
+  T -> T : tick(now)
+  T -> D : GET aircraft.json (timeout 5 s)
+  D --> T : 200 JSON
 
-  alt HTTPError or invalid JSON
-    Run -> Run : log.warning("Failed to read dump1090")
+  alt HTTP error, timeout or invalid JSON
+    T -> T : console.warn("dump1090 read failed")
   else success
-    Run -> Parser : parse_snapshot(resp.json())
+    T -> Parser : parseSnapshot(json)
     activate Parser
     loop for each aircraft
-      Parser -> Parser : parse_aircraft(raw, now)
+      Parser -> Parser : parseAircraft(raw, now)
       note right
         discards invalid hex / "~"
         alt_baro|altitude, gs|speed
         ts = now - seen
-        pos_ts = now - seen_pos
+        posTs = now - seen_pos
       end note
     end
-    Parser --> Run : Snapshot(now, messages_total, aircraft[])
+    Parser --> T : Snapshot(now, messagesTotal, aircraft[])
     deactivate Parser
-    Run -> Store : store(conn, snap, state)
+    T -> C : ingest(snap)
+    T -> T : lastRead = now
   end
-  Run -> Run : sleep(interval - duration)
+  deactivate T
 end
 @enduml

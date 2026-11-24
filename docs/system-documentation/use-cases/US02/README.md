@@ -9,44 +9,43 @@
 ## Acceptance Criteria
 
 - Each seen aircraft is recorded in the `aircraft` table with `first_seen` / `last_seen`.
-- The position of each aircraft is stored at most every `POSITION_MIN_INTERVAL_SECONDS` (5 s).
+- The position of each aircraft is stored at most every 15 s.
 - Aircraft without a position, or with a position older than 60 s, do not generate rows in `position`.
 - The same position is not stored twice.
-- The live state of each aircraft is kept in `aircraft_live`, updated on every read; it is removed after `LIVE_EXPIRY_SECONDS` (300 s) without messages.
-- A receiver summary is stored in `receiver_snapshot` every `SNAPSHOT_INTERVAL_SECONDS` (10 s).
-- Retention: `position` and `receiver_snapshot` are deleted after `RETENTION_DAYS` (30).
+- The live state of each aircraft is kept in memory, updated on every read; it is removed after 300 s without messages.
+- A receiver summary is stored in `receiver_snapshot` every 15 s.
+- History is written to Supabase in batches every 15 s; a failed batch is kept and written with the next one.
+- Retention: `position` and `receiver_snapshot` are deleted after 7 days.
 
 ## Preconditions
 
-- The database is accessible and migrations have been applied (each service applies them on startup).
+- The Supabase migrations have been applied.
 - A `Snapshot` produced by US01 is available.
 
 ## Postconditions
 
-- `aircraft`, `aircraft_live`, `position`, and `receiver_snapshot` reflect the read, within a single transaction.
+- The live state reflects the read immediately; `aircraft`, `position` and `receiver_snapshot` reflect it after the next flush (≤ 15 s), written in a single transaction.
 
 ## Main Success Scenario
 
-1. The system selects aircraft with recent positions whose last stored position is ≥ 5 s old.
-2. The system upserts all aircraft into `aircraft` and `aircraft_live`.
-3. The system removes aircraft from `aircraft_live` with no messages for more than 300 s.
-4. The system inserts the selected positions into `position`.
-5. If ≥ 10 s have elapsed since the last summary, it inserts a row into `receiver_snapshot`.
-6. The system commits the transaction and only then updates in-memory state.
+1. The system updates the live state of every aircraft in memory.
+2. The system queues the recent positions whose last stored position is ≥ 15 s old.
+3. The system removes from the live state aircraft with no messages for more than 300 s.
+4. If ≥ 15 s have elapsed since the last summary, it queues a receiver summary.
+5. Every 15 s, the system sends the queued aircraft, positions and summaries to Supabase in a single call (`record_batch`), which writes them in one transaction.
 
 ## Alternative Flows / Exceptions
 
 | Step | Condition | System response |
 |---|---|---|
-| 2–6 | SQL error | `rollback`; the next read is processed normally |
-| 2–6 | Database connection lost | Closes connection and reconnects after 5 s |
+| 5 | Supabase unavailable or SQL error | The batch is kept in memory (up to 20,000 positions) and sent with the next flush |
 
 ## Design Rationale
 
-- `aircraft_live` is `UNLOGGED`: it is written at 1 Hz and rebuilds in seconds, therefore dispensing with WAL.
-- `last_position` is updated **after** the `commit` to avoid losing positions if the transaction fails.
+- The live state stays in memory: it is rewritten on every read and rebuilt from the receiver in seconds, and storing it would exceed the 100,000 daily writes of the Cloudflare free plan.
+- Writing in batches (one request every 15 s) keeps the number of requests low; the 15 s resolution keeps the history within the 500 MB of the Supabase free plan for 7 days.
 - `GREATEST(last_seen)` and `COALESCE(category)` prevent older or null data from overwriting valid data.
-- Purging old data runs in a separate worker every 24 h so as not to block the collector.
+- Purging old data runs in the database itself (daily `pg_cron` job), outside the collection loop.
 
 ## Diagrams
 

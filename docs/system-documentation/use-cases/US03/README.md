@@ -15,7 +15,7 @@
 
 ## Preconditions
 
-- The aircraft is in `aircraft_live` with a known callsign.
+- The aircraft is in the live state with a known callsign.
 
 ## Postconditions
 
@@ -23,8 +23,8 @@
 
 ## Main Success Scenario
 
-1. The worker identifies callsigns in `aircraft_live` without a route or with an expired route (TTL 7 days; errors after 1 h).
-2. For each callsign, the system queries `GET /v0/callsign/{callsign}` on adsbdb.
+1. On each loop iteration, the system identifies a live callsign without a route or with an expired route (TTL 7 days; errors after 1 h), looking first in the memory cache and then in `flight_route`.
+2. The system queries `GET /v0/callsign/{callsign}` on adsbdb (at most one request per API per iteration).
 3. The system stores airline, origin, and destination (ICAO, IATA, name, coordinates) in `flight_route`.
 4. The user requests visible aircraft; the system returns them with the associated route.
 
@@ -33,13 +33,14 @@
 | Step | Condition | System response |
 |---|---|---|
 | 2 | adsbdb returns 404 | Stores `status = not_found` (negative cache) |
-| 2 | Failure after all attempts | Stores `status = error`; retries after 1 h |
+| 2 | 429, 5xx or network error | Backs off (exponential or `Retry-After`) and retries on a later iteration |
+| 2 | Failure after 4 attempts or other 4xx | Stores `status = error`; retries after 1 h |
 | 4 | Callsign without `ok` route | Route fields set to `null` |
 
 ## Design Rationale
 
 - The route is associated with the **callsign** and not the aircraft: the same aircraft operates multiple flights.
-- The API never calls external APIs on user requests; it always reads from the database, ensuring low latency and resilience against external failures.
+- The API never calls external APIs on user requests; it answers from memory (live state and enrichment cache), ensuring low latency and resilience against external failures.
 
 ## Diagrams
 

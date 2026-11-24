@@ -15,7 +15,7 @@
 
 ## Preconditions
 
-- Aircraft exist in `aircraft_live`.
+- Aircraft exist in the live state.
 
 ## Postconditions
 
@@ -23,24 +23,24 @@
 
 ## Main Success Scenario
 
-1. The worker selects only visible aircraft/callsigns without valid cache.
-2. Before each request, `RateLimitedClient` waits as needed to respect 1 request/s.
-3. The response (or its absence) is stored with status and timestamp.
+1. The system looks up the visible aircraft and callsigns not yet in memory in Supabase (one query per table).
+2. The system selects one aircraft or callsign without valid cache, if the `ApiGate` of the API allows a new request.
+3. The response (or its absence) is stored with status and timestamp in Supabase and in memory.
 
 ## Alternative Flows / Exceptions
 
 | Step | Condition | System response |
 |---|---|---|
-| 2 | HTTP 404 | Returns `None` → negative cache (`not_found`) |
-| 2 | HTTP 429 / 5xx / network error | Waits for `Retry-After` or `base · 2^attempt` (max. 60 s) and retries up to 5 attempts |
-| 2 | Other 4xx or invalid JSON | Immediate `EnrichmentError` → `error` |
-| 2 | Exhausted attempts | `EnrichmentError` → `error`, retried after 1 h |
+| 2 | HTTP 404 | `not_found` → negative cache |
+| 2 | HTTP 429 / 5xx / network error | The API is blocked for `Retry-After` or `base · 2^failures` (max. 60 s); the item is retried on a later iteration, up to 4 attempts |
+| 2 | Other 4xx or invalid JSON | `error` immediately |
+| 2 | Exhausted attempts | `error`, retried after 1 h |
 
 ## Design Rationale
 
-- One `RateLimitedClient` per API, because each API has its own limits.
-- The TTL is applied directly in the selection SQL (`AIRCRAFT_TODO`, `ROUTES_TODO`), so the database serves as the cache and survives restarts.
-- `sleep` and `clock` are injectable, allowing throttle and backoff to be tested without real delays.
+- One `ApiGate` per API, because each API has its own limits.
+- `ApiGate` never sleeps: it only says whether a request is allowed at a given instant, so the Durable Object is never kept busy waiting (CPU and duration count against the free plan). Time is passed as a parameter, allowing throttle and backoff to be tested without real delays.
+- The database is the persistent cache and survives restarts; the memory copy avoids a query per iteration.
 
 ## Diagrams
 

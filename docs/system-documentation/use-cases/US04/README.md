@@ -15,7 +15,7 @@
 
 ## Preconditions
 
-- The aircraft has been seen by the receiver (exists in `aircraft` and `aircraft_live`).
+- The aircraft is currently seen by the receiver (it is in the live state).
 
 ## Postconditions
 
@@ -23,9 +23,9 @@
 
 ## Main Success Scenario
 
-1. The worker identifies visible aircraft to be enriched or with expired data (TTL 30 days; errors after 1 h).
-2. For each aircraft, the system queries adsbdb (`/aircraft/{hex}`) and planespotters (`/hex/{hex}`).
-3. The system updates the row in `aircraft` without overwriting already known values.
+1. On each loop iteration, the system identifies a visible aircraft to be enriched or with expired data (TTL 30 days; errors after 1 h), looking first in the memory cache and then in `aircraft`.
+2. The system queries adsbdb (`/aircraft/{hex}`) and planespotters (`/hex/{hex}`).
+3. The system saves the result in `aircraft` (`save_aircraft_enrichment`) without overwriting already known values, and in the memory cache.
 4. The user requests details for an aircraft; the system returns identification, photograph, and live state.
 
 ## Alternative Flows / Exceptions
@@ -33,15 +33,16 @@
 | Step | Condition | System response |
 |---|---|---|
 | 2 | Neither API knows the aircraft | `enrich_status = not_found` |
-| 2 | Failure after all attempts | `enrich_status = error`; retries after 1 h |
+| 2 | 429, 5xx or network error | Backs off and retries on a later iteration |
+| 2 | Failure after 4 attempts or other 4xx | `enrich_status = error`; retries after 1 h |
 | 4 | `hex` with invalid format | `422` |
-| 4 | Unknown `hex` | `404 "Avião desconhecido"` |
+| 4 | Unknown `hex` | `404 "Unknown aircraft"` |
 
 ## Design Rationale
 
-- `COALESCE(new, current)` in the `UPDATE`: an incomplete response does not overwrite previously obtained data.
+- `COALESCE(new, current)` in `save_aircraft_enrichment`: an incomplete response does not overwrite previously obtained data.
 - It is sufficient for one of the sources to respond for the status to be `ok`.
-- The index `aircraft (enriched_at NULLS FIRST)` gives priority to aircraft never enriched.
+- Aircraft are enriched before routes, so identification and photo appear first.
 
 ## Diagrams
 

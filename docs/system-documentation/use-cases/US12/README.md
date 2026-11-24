@@ -8,7 +8,7 @@
 
 ## Acceptance Criteria (proposed)
 
-- The timeline covers the retention period (30 days).
+- The timeline covers the retention period (7 days).
 - For the selected timestamp, the map displays the last position of each aircraft in the preceding 60 s.
 - It is possible to replay from that timestamp at speeds of 1×, 10×, and 60×.
 - During replay, it is clear that this is not real time; returning to live mode is supported.

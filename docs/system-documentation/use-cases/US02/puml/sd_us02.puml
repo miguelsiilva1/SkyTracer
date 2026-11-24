@@ -1,42 +1,48 @@
 @startuml
 autonumber
-participant "run()" as Run
-participant "store()" as Store
-participant "CollectorState" as State
-database "PostgreSQL" as DB
+participant "Tracker\ntick()" as T
+participant "Collector" as C
+participant "Supabase\n(client)" as S
+database "Supabase\nPostgreSQL" as DB
 
-Run -> Store : store(conn, snap, state)
-activate Store
+T -> C : ingest(snap)
+activate C
 loop for each aircraft in snapshot
-  Store -> State : last_position.get(hex)
-  State --> Store : prev
-  Store -> Store : has_fresh_position\nand should_store_position(prev, pos_ts)
+  C -> C : live.set(hex, state)
+  note right: in memory: callsign and\ncategory keep the last known value
+  C -> C : aircraft.set(hex, {seen_at, category})
+  opt hasFreshPosition and\nposTs - lastPosition[hex] >= 15 s
+    C -> C : positions.push(row)\nlastPosition[hex] = posTs
+  end
+end
+C -> C : remove from live aircraft\nnot seen for 300 s
+opt >= 15 s since the last snapshot
+  C -> C : snapshots.push(summary)
+end
+C --> T : number of positions queued
+deactivate C
+
+opt >= FLUSH_INTERVAL (15 s) since the last flush
+  T -> C : takeBatch()
+  C --> T : Batch {aircraft[], positions[], snapshots[]}
+  T -> S : rpc("record_batch", batch)
+  S -> DB : POST /rest/v1/rpc/record_batch
+  activate DB
+  DB -> DB : upsert aircraft\n(GREATEST(last_seen), COALESCE(category))
+  DB -> DB : insert position
+  DB -> DB : insert receiver_snapshot\nON CONFLICT DO NOTHING
+  alt success
+    DB --> S : 204
+  else failure
+    DB --> S : error
+    S --> T : SupabaseError
+    T -> C : restore(batch)
+    note right: retried with the next flush\n(at most 20,000 positions kept)
+  end
+  deactivate DB
 end
 
-Store -> DB : executemany(UPSERT_AIRCRAFT)
-note right: GREATEST(last_seen),\nCOALESCE(category)
-Store -> DB : executemany(UPSERT_LIVE)
-Store -> DB : DELETE aircraft_live\nWHERE seen_at < now - 300 s
-Store -> DB : executemany(INSERT_POSITION)
-
-opt >= SNAPSHOT_INTERVAL_SECONDS elapsed
-  Store -> DB : INSERT receiver_snapshot\nON CONFLICT DO NOTHING
-  Store -> State : last_snapshot = now
-end
-
-alt success
-  Store -> DB : COMMIT
-  Store -> State : last_position[hex] = pos_ts
-  Store --> Run : number of positions
-else psycopg.Error
-  Store --> Run : exception
-  Run -> DB : ROLLBACK
-end
-deactivate Store
-
-== Retention (enrichment worker, every 24 h) ==
-participant "purge_old_data()" as Purge
-Purge -> DB : DELETE position WHERE ts < now - 30 days
-Purge -> DB : DELETE receiver_snapshot WHERE ts < now - 30 days
-Purge -> DB : COMMIT
+== Retention (pg_cron, daily at 03:17 UTC) ==
+DB -> DB : DELETE position WHERE ts < now - 7 days
+DB -> DB : DELETE receiver_snapshot WHERE ts < now - 7 days
 @enduml
