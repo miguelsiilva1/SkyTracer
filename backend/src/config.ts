@@ -1,5 +1,7 @@
 export interface Config {
 	dump1090Url: string;
+	networkUrl: string; // empty disables the adsb.fi network source
+	networkIntervalMs: number;
 	pollIntervalMs: number;
 	positionMinIntervalMs: number;
 	flushIntervalMs: number;
@@ -22,6 +24,8 @@ function num(value: string | undefined, fallback: number): number {
 export function loadConfig(env: Env): Config {
 	return {
 		dump1090Url: env.DUMP1090_URL,
+		networkUrl: env.NETWORK_URL ?? "",
+		networkIntervalMs: num(env.NETWORK_INTERVAL_SECONDS, 10) * 1000,
 		pollIntervalMs: num(env.POLL_INTERVAL_SECONDS, 3) * 1000,
 		positionMinIntervalMs: num(env.POSITION_MIN_INTERVAL_SECONDS, 15) * 1000,
 		flushIntervalMs: num(env.FLUSH_INTERVAL_SECONDS, 15) * 1000,

@@ -190,6 +190,20 @@ describe("Enricher", () => {
 		expect(db.calls).toHaveLength(2); // tried again after the hour
 	});
 
+	it("still enriches from the external APIs when the database is unreachable", async () => {
+		apis();
+		const db = new FakeDb();
+		db.select = async () => {
+			throw new Error("HTTP 401");
+		};
+		db.rpc = async () => {
+			throw new Error("HTTP 401");
+		};
+		const e = enricher(db);
+		await e.step([live("4d00f1", "LGL32PR")], 0);
+		expect(e.aircraft.get("4d00f1")).toMatchObject({ registration: "LX-LBR", photo_credit: "Tomas Scheffer", enrich_status: "ok" });
+	});
+
 	it("only enriches what it is given (the live aircraft)", async () => {
 		const seen = apis();
 		await enricher(new FakeDb()).step([], 0);

@@ -23,12 +23,25 @@ function receiver() {
 	};
 }
 
+function network() {
+	return {
+		now: Date.now(),
+		ac: [
+			// also seen by the receiver: contributes only extra parameters
+			{ hex: "4d00f1", flight: "LGL32PR ", lat: 41.4, lon: -8.6, alt_baro: 13400, alt_geom: 13850, tas: 410, ias: 300, mach: 0.65, wd: 250, ws: 30, oat: -12, seen: 0, seen_pos: 0 },
+			// seen only by the network
+			{ hex: "3c6589", flight: "DLH1170 ", r: "D-AIUA", t: "A320", desc: "AIRBUS A-320", lat: 43.1, lon: -5.2, alt_baro: 37000, gs: 450, track: 30, seen: 0, seen_pos: 1 },
+		],
+	};
+}
+
 beforeEach(() => {
 	rpcs = [];
 	selects = [];
 	positions = [];
 	mockFetch(async (url, init) => {
 		if (url.hostname === "ads-b.jcboliveira.xyz") return Response.json(receiver());
+		if (url.hostname === "opendata.adsb.fi") return Response.json(network());
 		if (url.hostname === "supabase.test") {
 			const name = url.pathname.replace("/rest/v1/", "");
 			if (name.startsWith("rpc/")) {
@@ -70,8 +83,9 @@ describe("Tracker", () => {
 		expect(rpcs.some((r) => r.fn === "save_aircraft_enrichment" && r.body.p.registration === "LX-LBR")).toBe(true);
 
 		const live = (await (await tracker().fetch("https://api/aircraft/live")).json()) as any[];
-		expect(live.map((a) => a.hex)).toEqual(["4d00f1"]); // without position it is not on the map
-		expect(live[0]).toMatchObject({ callsign: "LGL32PR", registration: "LX-LBR", operator: "Luxair", photo_credit: "Tomas Scheffer" });
+		const own = live.filter((a) => a.source === "receiver");
+		expect(own.map((a) => a.hex)).toEqual(["4d00f1"]); // without position it is not on the map
+		expect(own[0]).toMatchObject({ callsign: "LGL32PR", registration: "LX-LBR", operator: "Luxair", photo_credit: "Tomas Scheffer" });
 	});
 
 	it("reports the loop status on /health", async () => {
@@ -129,8 +143,37 @@ describe("Tracker", () => {
 		const ws = resp.webSocket!;
 		const first = new Promise<any>((resolve) => ws.addEventListener("message", (e) => resolve(JSON.parse(String(e.data)))));
 		ws.accept();
-		expect((await first).aircraft.map((a: any) => a.hex)).toEqual(["4d00f1"]);
+		const msg = await first;
+		// the course receiver comes first
+		expect(msg.aircraft.map((a: any) => `${a.hex}:${a.source}`)).toEqual(["4d00f1:receiver", "3c6589:adsb.fi"]);
 		ws.close();
+	});
+});
+
+describe("adsb.fi network", () => {
+	it("adds network-only aircraft, labelled, without storing them", async () => {
+		await runInDurableObject(env.TRACKER.getByName("network"), async (instance: Tracker, state) => {
+			await state.storage.deleteAlarm();
+			await instance.tick(Date.now());
+		});
+		const live = (await (await env.TRACKER.getByName("network").fetch("https://api/aircraft/live")).json()) as any[];
+		const bySource = Object.fromEntries(live.map((a) => [a.hex, a.source]));
+		expect(bySource).toEqual({ "4d00f1": "receiver", "3c6589": "adsb.fi" });
+
+		const lh = live.find((a) => a.hex === "3c6589");
+		expect(lh).toMatchObject({ registration: "D-AIUA", icao_type: "A320", rssi_dbfs: null });
+		const own = live.find((a) => a.hex === "4d00f1");
+		expect(own.extra).toMatchObject({ alt_geom_ft: 13850, tas_kt: 410, mach: 0.65, wind_dir_deg: 250, oat_c: -12 });
+		expect(own.extra_source).toBe("adsb.fi");
+		expect(own.lat).toBe(41.37); // position always from the receiver when it has one
+
+		const batch = rpcs.find((r) => r.fn === "record_batch")!.body;
+		expect(batch.p_aircraft.map((a: any) => a.hex)).not.toContain("3c6589");
+		expect(batch.p_positions.map((p: any) => p.hex)).not.toContain("3c6589");
+		expect(rpcs.some((r) => r.fn === "save_aircraft_enrichment" && r.body.p.hex === "3c6589")).toBe(false);
+
+		const detail = (await (await env.TRACKER.getByName("network").fetch("https://api/aircraft/3c6589")).json()) as any;
+		expect(detail).toMatchObject({ source: "adsb.fi", live: { registration: "D-AIUA" } });
 	});
 });
 
