@@ -1,6 +1,6 @@
 /**
- * Interface languages: English and Portuguese. Any text missing from a language falls back to
- * English. Data from the receiver and the external sources (callsigns, airline and airport
+ * Interface languages: English and Portuguese (Portugal). Any text missing from a language falls
+ * back to English. Data from the receiver and the external sources (callsigns, airline and airport
  * names, aircraft types) is shown as received, in every language.
  */
 import { createContext, type ReactNode, useContext, useEffect, useMemo, useState } from "react";
@@ -78,8 +78,75 @@ const en = {
 export type MessageKey = keyof typeof en;
 export type Language = "en" | "pt";
 
-/** Portuguese: filled in with the names chosen for the Portuguese version. */
-const pt: Partial<Record<MessageKey, string>> = {};
+/** Portuguese (Portugal). Aviation terms commonly used in English (callsign, squawk, Mach) are kept. */
+const pt: Record<MessageKey, string> = {
+	"receiver": "Recetor do Porto",
+	"theme.group": "Tema do mapa",
+	"theme.light": "Claro",
+	"theme.dark": "Escuro",
+	"theme.standard": "Padrão",
+	"language.group": "Idioma",
+	"status.connecting": "A ligar ao recetor",
+	"status.reconnecting": "Ligação perdida. A restabelecer e a mostrar as últimas posições conhecidas",
+	"status.count": "{receiver} do recetor do Porto, {network} do adsb.fi",
+	"status.countReceiver": "{receiver} aeronaves do recetor do Porto",
+	"status.updated": "{count}. Atualizado às {time} UTC",
+	"sources.group": "Aeronaves mostradas",
+	"sources.all": "Todas as fontes",
+	"sources.receiver": "Só o recetor do Porto",
+	"legend.receiver": "Recebido no Porto",
+	"legend.network": "Rede adsb.fi",
+	"scale.caption": "Altitude, milhares de pés",
+	"panel.close": "Fechar detalhes da aeronave",
+	"panel.notIdentified": "Ainda não identificada",
+	"panel.routeUnknown": "Rota desconhecida para este callsign",
+	"panel.routeTo": "para",
+	"panel.altitude": "Altitude",
+	"panel.onGround": "No solo",
+	"panel.groundSpeed": "Velocidade no solo",
+	"panel.track": "Rumo",
+	"panel.verticalRate": "Razão vertical",
+	"panel.climbing": "A subir",
+	"panel.descending": "A descer",
+	"panel.squawk": "Squawk",
+	"panel.icao": "Endereço ICAO",
+	"panel.signal": "Sinal",
+	"panel.positionFrom": "Posição por",
+	"panel.photoBy": "Foto de {name}, planespotters.net",
+	"source.receiver": "Recebida pelo recetor STAER no Porto",
+	"source.network": "Não recebida no Porto. Posição e dados da rede {network}, mostrados em direto e não guardados",
+	"source.noTrack": "Sem rasto: as posições do adsb.fi não são guardadas",
+	"extra.title": "Da rede {network}",
+	"extra.altGeom": "Altitude GPS",
+	"extra.tas": "Velocidade verdadeira (TAS)",
+	"extra.ias": "Velocidade indicada (IAS)",
+	"extra.mach": "Mach",
+	"extra.wind": "Vento",
+	"extra.oat": "Temperatura exterior",
+	"panel.photoOf": "Fotografia de {aircraft}",
+	"emergency.banner": "Squawk {code}: {meaning}",
+	"emergency.7500": "interferência ilícita",
+	"emergency.7600": "falha de rádio",
+	"emergency.7700": "emergência geral",
+	"search.label": "Pesquisar aeronaves",
+	"search.placeholder": "Callsign, matrícula, ICAO, companhia, tipo, aeroporto",
+	"search.none": "Nenhuma aeronave corresponde",
+	"search.more": "e mais {count} no mapa",
+	"search.hidden": "Recebida agora, mas escondida pelos filtros",
+	"search.lastSeen": "{name} não está a ser recebida. Vista pela última vez em {time} UTC",
+	"search.notNow": "{name} não está a ser recebida",
+	"filter.altitude": "Altitude",
+	"filter.altitude.all": "Todas",
+	"filter.altitude.ground": "Solo",
+	"filter.altitude.low": "<10k",
+	"filter.altitude.mid": "10–30k",
+	"filter.altitude.high": ">30k",
+	"filter.emergency": "Emergências",
+	"filter.withRoute": "Com rota",
+	"filter.clear": "Limpar",
+	"filter.showing": "A mostrar {shown} de {total} aeronaves",
+	"native.mapComing": "Por agora, o mapa só está disponível na web. O mapa para Android e iOS chega no Sprint 3.",
+};
 
 const dictionaries: Record<Language, Partial<Record<MessageKey, string>>> = { en, pt };
 const STORAGE_KEY = "skytracer.language";
