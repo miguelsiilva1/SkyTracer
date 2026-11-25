@@ -45,11 +45,18 @@ function toRequest(req: IncomingMessage): Request {
 
 /** Starts the HTTP server; WebSocket clients connect to /ws/live. */
 export function startServer(tracker: Tracker, cfg: Config, port = cfg.port): Server {
-	const wss = new WebSocketServer({ noServer: true });
+	// clients never send data, so their messages are kept tiny
+	const wss = new WebSocketServer({ noServer: true, maxPayload: 1024 });
 	const server = createServer(async (req, res) => {
-		const resp = await handle(toRequest(req), tracker, cfg);
-		res.writeHead(resp.status, Object.fromEntries(resp.headers));
-		res.end(Buffer.from(await resp.arrayBuffer()));
+		try {
+			const resp = await handle(toRequest(req), tracker, cfg);
+			res.writeHead(resp.status, Object.fromEntries(resp.headers));
+			res.end(Buffer.from(await resp.arrayBuffer()));
+		} catch {
+			// a request the WHATWG Request cannot represent (unusual method or URL)
+			if (!res.headersSent) res.writeHead(400);
+			res.end();
+		}
 	});
 	server.on("upgrade", (req, socket, head) => {
 		if (new URL(req.url ?? "/", "http://localhost").pathname !== "/ws/live") return socket.destroy();

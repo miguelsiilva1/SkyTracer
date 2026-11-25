@@ -24,6 +24,7 @@ const ADSBDB_URL = "https://api.adsbdb.com/v0";
 const PLANESPOTTERS_URL = "https://api.planespotters.net/pub/photos";
 const LIVE_MAX_AGE_S = 60;
 const FETCH_TIMEOUT_MS = 5_000;
+const WS_MAX_BUFFERED_BYTES = 1_000_000; // a client this far behind is dropped
 
 const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
 
@@ -116,7 +117,10 @@ export class Tracker {
 
 		if (this.clients.size) {
 			const message = this.liveMessage(now);
-			for (const ws of this.clients) ws.send(message);
+			for (const ws of this.clients) {
+				if (ws.bufferedAmount > WS_MAX_BUFFERED_BYTES) ws.terminate();
+				else ws.send(message);
+			}
 		}
 	}
 
