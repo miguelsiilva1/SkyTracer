@@ -1,7 +1,7 @@
 /**
- * Tracker Durable Object: the single always-on part of SkyTracer.
+ * Tracker: the always-on core of SkyTracer.
  *
- * An alarm fires every POLL_INTERVAL: it reads aircraft.json, updates the live state (kept in
+ * A loop runs every POLL_INTERVAL: it reads aircraft.json, updates the live state (kept in
  * memory), reads the adsb.fi network every NETWORK_INTERVAL, enriches one aircraft or route,
  * flushes the buffered history to Supabase every FLUSH_INTERVAL and pushes the live state to the
  * WebSocket clients. The API answers live data from memory and history from Supabase, so it keeps
@@ -11,9 +11,9 @@
  * "adsb.fi" (seen only by the network, shown live and never stored). Receiver aircraft may also
  * carry `extra` parameters from adsb.fi, labelled with `extra_source`.
  */
-import { DurableObject } from "cloudflare:workers";
+import type { WebSocket } from "ws";
 import { Collector, type LiveAircraft } from "./collector";
-import { type Config, loadConfig } from "./config";
+import type { Config } from "./config";
 import { type AircraftState, parseSnapshot } from "./dump1090";
 import { Enricher } from "./enrichment/enricher";
 import { ApiGate } from "./enrichment/http";
@@ -24,11 +24,11 @@ const ADSBDB_URL = "https://api.adsbdb.com/v0";
 const PLANESPOTTERS_URL = "https://api.planespotters.net/pub/photos";
 const LIVE_MAX_AGE_S = 60;
 const FETCH_TIMEOUT_MS = 5_000;
+const WS_MAX_BUFFERED_BYTES = 1_000_000; // a client this far behind is dropped
 
 const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
 
-export class Tracker extends DurableObject<Env> {
-	private readonly cfg: Config;
+export class Tracker {
 	private readonly db: Supabase;
 	private readonly collector: Collector;
 	private readonly enricher: Enricher;
@@ -37,10 +37,11 @@ export class Tracker extends DurableObject<Env> {
 	private network = new Map<string, NetworkAircraft>();
 	private lastNetworkRead: number | null = null;
 	private lastNetworkAttempt = 0;
+	private readonly clients = new Set<WebSocket>();
+	private timer: ReturnType<typeof setTimeout> | undefined;
+	private running = false;
 
-	constructor(ctx: DurableObjectState, env: Env) {
-		super(ctx, env);
-		this.cfg = loadConfig(env);
+	constructor(private readonly cfg: Config) {
 		this.db = new Supabase(this.cfg.supabaseUrl, this.cfg.supabaseKey);
 		this.collector = new Collector({
 			positionMinIntervalMs: this.cfg.positionMinIntervalMs,
@@ -57,16 +58,30 @@ export class Tracker extends DurableObject<Env> {
 				routeTtlMs: this.cfg.routeTtlMs,
 			},
 		);
-		// any access to the object (including the first request after a deploy) starts the loop
-		ctx.blockConcurrencyWhile(async () => {
-			if ((await ctx.storage.getAlarm()) === null) await ctx.storage.setAlarm(Date.now());
-		});
 	}
 
-	async alarm(): Promise<void> {
-		// schedule the next tick first, so the loop survives any failure below
-		await this.ctx.storage.setAlarm(Date.now() + this.cfg.pollIntervalMs);
-		await this.tick(Date.now());
+	/** Starts the loop: one tick every POLL_INTERVAL, never two at the same time. */
+	start(): void {
+		this.running = true;
+		const run = async () => {
+			const started = Date.now();
+			try {
+				await this.tick(started);
+			} catch (err) {
+				console.error(`tick failed: ${err}`);
+			}
+			// the next tick is always scheduled, so the loop survives any failure above
+			if (this.running) this.timer = setTimeout(run, Math.max(0, this.cfg.pollIntervalMs - (Date.now() - started)));
+		};
+		this.timer = setTimeout(run, 0);
+	}
+
+	/** Stops the loop and writes the history still buffered. */
+	async stop(): Promise<void> {
+		this.running = false;
+		clearTimeout(this.timer);
+		for (const ws of this.clients) ws.close(1001);
+		await this.flush();
 	}
 
 	/** One iteration of the loop (public for tests). */
@@ -100,17 +115,21 @@ export class Tracker extends DurableObject<Env> {
 			await this.flush();
 		}
 
-		const sockets = this.ctx.getWebSockets();
-		if (sockets.length) {
+		if (this.clients.size) {
 			const message = this.liveMessage(now);
-			for (const ws of sockets) {
-				try {
-					ws.send(message);
-				} catch {
-					// closed meanwhile; the runtime removes it
-				}
+			for (const ws of this.clients) {
+				if (ws.bufferedAmount > WS_MAX_BUFFERED_BYTES) ws.terminate();
+				else ws.send(message);
 			}
 		}
+	}
+
+	/** Registers a WebSocket client of /ws/live and sends it the current state right away. */
+	addClient(ws: WebSocket): void {
+		this.clients.add(ws);
+		ws.on("close", () => this.clients.delete(ws));
+		ws.on("error", () => this.clients.delete(ws));
+		ws.send(this.liveMessage(Date.now()));
 	}
 
 	/** Replaces the network snapshot; on failure the previous one simply ages out. */
@@ -218,7 +237,8 @@ export class Tracker extends DurableObject<Env> {
 		return JSON.stringify({ ts: iso(now), aircraft: this.liveAircraft(LIVE_MAX_AGE_S, now) });
 	}
 
-	async fetch(request: Request): Promise<Response> {
+	/** Answers the REST routes (the WebSocket route is handled by the server). */
+	async handle(request: Request): Promise<Response> {
 		const url = new URL(request.url);
 		const now = Date.now();
 		const path = url.pathname;
@@ -232,13 +252,7 @@ export class Tracker extends DurableObject<Env> {
 			});
 		}
 
-		if (path === "/ws/live") {
-			if (request.headers.get("Upgrade") !== "websocket") return new Response("Expected WebSocket", { status: 426 });
-			const { 0: client, 1: server } = new WebSocketPair();
-			this.ctx.acceptWebSocket(server);
-			server.send(this.liveMessage(now)); // current state right away
-			return new Response(null, { status: 101, webSocket: client });
-		}
+		if (path === "/ws/live") return new Response("Expected WebSocket", { status: 426 });
 
 		if (path === "/aircraft/live") {
 			const maxAge = intParam(url, "max_age_seconds", LIVE_MAX_AGE_S, 1, 300);
@@ -276,18 +290,6 @@ export class Tracker extends DurableObject<Env> {
 		}
 
 		return Response.json({ detail: "Not found" }, { status: 404 });
-	}
-
-	async webSocketMessage(): Promise<void> {
-		// client messages are ignored
-	}
-
-	async webSocketClose(ws: WebSocket): Promise<void> {
-		try {
-			ws.close(1000);
-		} catch {
-			// already closed
-		}
 	}
 }
 
