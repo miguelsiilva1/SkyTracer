@@ -1,6 +1,6 @@
 /**
  * Aircraft panel laid out as an ATC flight progress strip (US07): callsign and identification,
- * route (US03), live values in ruled boxes, and the photo with its credit (US04). The values
+ * route (US03), live values in ruled boxes; the photo with its credit (US04) comes first. The values
  * keep updating with every WebSocket message.
  */
 import { useMemo } from "react";
@@ -69,6 +69,25 @@ export default function AircraftPanel({ aircraft: a, onClose }: { aircraft: Live
 	return (
 		<View style={s.panel}>
 			<ScrollView contentContainerStyle={s.scroll}>
+				{a.photo_url ? (
+					<View>
+						<Image
+							source={{ uri: a.photo_url }}
+							style={s.photo}
+							resizeMode="cover"
+							accessibilityLabel={t("panel.photoOf", { aircraft: a.registration ?? a.hex.toUpperCase() })}
+						/>
+						{a.photo_credit ? (
+							<Text
+								style={s.credit}
+								accessibilityRole={a.photo_link ? "link" : undefined}
+								onPress={a.photo_link ? () => Linking.openURL(a.photo_link as string) : undefined}
+							>
+								{t("panel.photoBy", { name: a.photo_credit })}
+							</Text>
+						) : null}
+					</View>
+				) : null}
 				<View style={s.strip}>
 					<View style={[s.edge, { backgroundColor: edge }]} />
 					<View style={{ flex: 1 }}>
@@ -157,25 +176,6 @@ export default function AircraftPanel({ aircraft: a, onClose }: { aircraft: Live
 					</View>
 				</View>
 
-				{a.photo_url ? (
-					<View>
-						<Image
-							source={{ uri: a.photo_url }}
-							style={s.photo}
-							resizeMode="cover"
-							accessibilityLabel={t("panel.photoOf", { aircraft: a.registration ?? a.hex.toUpperCase() })}
-						/>
-						{a.photo_credit ? (
-							<Text
-								style={s.credit}
-								accessibilityRole={a.photo_link ? "link" : undefined}
-								onPress={a.photo_link ? () => Linking.openURL(a.photo_link as string) : undefined}
-							>
-								{t("panel.photoBy", { name: a.photo_credit })}
-							</Text>
-						) : null}
-					</View>
-				) : null}
 			</ScrollView>
 		</View>
 	);
