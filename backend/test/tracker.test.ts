@@ -151,6 +151,24 @@ describe("Tracker", () => {
 		server.close();
 	});
 
+	it("sends each WebSocket client only the network aircraft in its view", async () => {
+		await tick();
+		const server = startServer(t, cfg, 0);
+		await new Promise((resolve) => server.once("listening", resolve));
+		const ws = new WebSocket(`ws://localhost:${(server.address() as AddressInfo).port}/ws/live`);
+		const next = () => new Promise<any>((resolve) => ws.once("message", (data) => resolve(JSON.parse(String(data)))));
+		const sources = (msg: any) => msg.aircraft.map((a: any) => a.hex).sort();
+
+		expect(sources(await next())).toEqual(["3c6589", "4d00f1"]); // no view yet: everything
+		ws.send(JSON.stringify({ bbox: [-9.5, 40.5, -7.5, 42] })); // around Porto
+		expect(sources(await next())).toEqual(["4d00f1"]); // the network aircraft at 43.1, -5.2 is outside
+		ws.send(JSON.stringify({ bbox: [-9.5, 40.5, -7.5, 42], keep: ["3c6589"] })); // but it is selected
+		expect(sources(await next())).toEqual(["3c6589", "4d00f1"]);
+		ws.send("not json"); // ignored
+		ws.close();
+		server.close();
+	});
+
 	it("runs the loop until stopped", async () => {
 		t.start();
 		await vi.waitFor(async () => expect(((await (await get("/health")).json()) as any).last_read).not.toBeNull());
@@ -180,6 +198,31 @@ describe("adsb.fi network", () => {
 
 		const detail = (await (await get("/aircraft/3c6589")).json()) as any;
 		expect(detail).toMatchObject({ source: "adsb.fi", live: { registration: "D-AIUA" } });
+	});
+});
+
+describe("adsb.fi areas", () => {
+	it("reads one area per turn and merges them", async () => {
+		vi.restoreAllMocks();
+		const requested = mockFetch(async (url) => {
+			if (url.hostname === "ads-b.jcboliveira.xyz") return Response.json(receiver());
+			if (url.hostname === "opendata.adsb.fi") {
+				const madrid = url.pathname.includes("/lat/40.42/");
+				const hex = madrid ? "34510f" : "3c6589";
+				return Response.json({ now: Date.now(), ac: [{ hex, lat: madrid ? 40.4 : 43.1, lon: madrid ? -3.7 : -5.2, alt_baro: 30000, seen: 0, seen_pos: 0 }] });
+			}
+			return Response.json([]);
+		});
+		const two = new Tracker({ ...cfg, networkUrls: cfg.networkUrls.slice(0, 2), networkIntervalMs: 6000 });
+		const now = Date.now();
+		await two.tick(now);
+		await two.tick(now + 3000);
+		await two.tick(now + 4000); // too soon for the next area
+		const areas = requested.filter((u) => u.hostname === "opendata.adsb.fi").map((u) => u.pathname);
+		expect(areas).toHaveLength(2);
+		expect(new Set(areas).size).toBe(2);
+		const live = (await (await two.handle(new Request("https://api/aircraft/live"))).json()) as any[];
+		expect(live.filter((a) => a.source === "adsb.fi").map((a) => a.hex).sort()).toEqual(["34510f", "3c6589"]);
 	});
 });
 

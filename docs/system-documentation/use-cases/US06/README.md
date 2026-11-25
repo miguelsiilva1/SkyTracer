@@ -9,6 +9,7 @@
 ## Acceptance Criteria
 
 - Upon connecting to `WS /ws/live`, the client immediately receives the live state and thereafter a message every ~3 s (one per loop iteration).
+- The app reports the visible map area after every pan or zoom; the server then limits the adsb.fi aircraft it sends to that area (US23).
 - Each message has the format `{"ts": ..., "aircraft": [...]}`, identical to `GET /aircraft/live`.
 - Only aircraft with a position received ≤ 60 s ago are sent.
 - *(Sprint 2)* The app draws each aircraft on the MapLibre map with its icon rotated according to `track_deg`.

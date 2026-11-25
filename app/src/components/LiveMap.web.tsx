@@ -35,6 +35,8 @@ export interface LiveMapProps {
 	selectedHex: string | null;
 	track: TrackPoint[];
 	focus?: MapFocus | null;
+	/** Area shown, with a margin around it: [west, south, east, north]. */
+	onViewport?: (bbox: [number, number, number, number]) => void;
 	onSelect: (hex: string | null) => void;
 }
 
@@ -168,7 +170,7 @@ function addOverlay(m: MapLibre, c: Palette, theme: ThemeName) {
 	});
 }
 
-export default function LiveMap({ aircraft, selectedHex, track, focus, onSelect }: LiveMapProps) {
+export default function LiveMap({ aircraft, selectedHex, track, focus, onViewport, onSelect }: LiveMapProps) {
 	const { name, c } = useTheme();
 	const container = useRef<HTMLDivElement>(null);
 	const map = useRef<MapLibre | null>(null);
@@ -176,6 +178,8 @@ export default function LiveMap({ aircraft, selectedHex, track, focus, onSelect 
 	palette.current = c;
 	const select = useRef(onSelect);
 	select.current = onSelect;
+	const viewport = useRef(onViewport);
+	viewport.current = onViewport;
 	const styleName = useRef(name);
 	// incremented each time the overlay is (re)created, so the data is applied again
 	const [overlay, setOverlay] = useState(0);
@@ -204,6 +208,15 @@ export default function LiveMap({ aircraft, selectedHex, track, focus, onSelect 
 			if (!m.getLayer("aircraft")) return;
 			if (!m.queryRenderedFeatures(e.point, { layers: ["aircraft"] }).length) select.current(null);
 		});
+		// report the area shown, with a quarter of its size as margin, so small pans need no update
+		const report = () => {
+			const b = m.getBounds();
+			const dx = (b.getEast() - b.getWest()) / 4;
+			const dy = (b.getNorth() - b.getSouth()) / 4;
+			viewport.current?.([b.getWest() - dx, Math.max(-90, b.getSouth() - dy), b.getEast() + dx, Math.min(90, b.getNorth() + dy)]);
+		};
+		m.on("load", report);
+		m.on("moveend", report);
 		m.on("mouseenter", "aircraft", () => (m.getCanvas().style.cursor = "pointer"));
 		m.on("mouseleave", "aircraft", () => (m.getCanvas().style.cursor = ""));
 		map.current = m;
