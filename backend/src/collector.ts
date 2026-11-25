@@ -1,5 +1,5 @@
 /**
- * Collector state, kept in the Durable Object's memory.
+ * Collector state, kept in the tracker's memory.
  *
  * Every read of aircraft.json updates the live state of each aircraft (the basis of the
  * real-time API). What goes to the database is buffered and written in batches:

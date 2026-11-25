@@ -3,7 +3,7 @@
  * (or the server's Retry-After) after 429 / 5xx / network errors.
  *
  * It never sleeps: the tracker asks `ready()` on each tick and simply tries again later, so
- * the Durable Object is never kept busy waiting.
+ * the loop is never kept busy waiting.
  */
 
 export type Fetched =

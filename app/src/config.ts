@@ -1,5 +1,5 @@
-/** Backend address; `EXPO_PUBLIC_API_URL` overrides it (for example a local `wrangler dev`). */
-export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://skytracer.cardly-server.workers.dev").replace(/\/+$/, "");
+/** Backend address; `EXPO_PUBLIC_API_URL` overrides it (for example a local backend). */
+export const API_URL = (process.env.EXPO_PUBLIC_API_URL ?? "https://skytracer.tail46dc6e.ts.net").replace(/\/+$/, "");
 
 export const WS_URL = API_URL.replace(/^http/, "ws") + "/ws/live";
 
