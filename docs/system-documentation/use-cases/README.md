@@ -22,8 +22,8 @@ Status: ✅ done · 🟡 backend done, application pending · ⏳ planned · �
 | [US05](US05/README.md) | Enrichment caching | 1 | ✅ | ✓ | ✓ |
 | [US06](US06/README.md) | Real-time map | 1–2 | 🟡 | ✓ | ✓ |
 | [US07](US07/README.md) | Details panel | 1–2 | 🟡 | ✓ | ✓ |
-| [US08](US08/README.md) | Filter aircraft | 2 | ⏳ | ✓ | — |
-| [US09](US09/README.md) | Search aircraft | 2 | ⏳ | ✓ | — |
+| [US08](US08/README.md) | Filter aircraft | 2 | ✅ | ✓ | ✓ |
+| [US09](US09/README.md) | Search aircraft | 2 | ✅ | ✓ | ✓ |
 | [US10](US10/README.md) | Track | 1–2 | 🟡 | ✓ | ✓ |
 | [US11](US11/README.md) | METAR | 4 | ⏳ | ✓ | — |
 | [US12](US12/README.md) | Replay | 3 | ⏳ | ✓ | — |

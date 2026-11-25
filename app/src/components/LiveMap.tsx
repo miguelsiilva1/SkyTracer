@@ -8,6 +8,8 @@ import { useT } from "../i18n";
 import { useTheme } from "../ThemeContext";
 import type { LiveMapProps } from "./LiveMap.web";
 
+export type { MapFocus } from "./LiveMap.web";
+
 export default function LiveMap(_: LiveMapProps) {
 	const { c } = useTheme();
 	const { t } = useT();

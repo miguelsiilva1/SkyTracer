@@ -2,13 +2,15 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { fetchTrack } from "./src/api";
+import { applyFilters, type Filters, NO_FILTERS } from "./src/filters";
 import AircraftPanel from "./src/components/AircraftPanel";
-import LiveMap from "./src/components/LiveMap";
+import LiveMap, { type MapFocus } from "./src/components/LiveMap";
+import SearchFilters from "./src/components/SearchFilters";
 import TopBar, { type SourceFilter } from "./src/components/TopBar";
 import { TRACK_MINUTES, TRACK_REFRESH_MS } from "./src/config";
 import { LanguageProvider } from "./src/i18n";
 import { ThemeProvider, useTheme } from "./src/ThemeContext";
-import type { TrackPoint } from "./src/types";
+import type { LiveAircraft, TrackPoint } from "./src/types";
 import { useLiveAircraft } from "./src/useLiveAircraft";
 
 const FONTS = "https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap";
@@ -20,10 +22,13 @@ function Screen() {
 	const [selected, setSelected] = useState<string | null>(null);
 	const [track, setTrack] = useState<TrackPoint[]>([]);
 	const [sources, setSources] = useState<SourceFilter>("all");
+	const [filters, setFilters] = useState<Filters>(NO_FILTERS);
+	const [focus, setFocus] = useState<MapFocus | null>(null);
 	const { width } = useWindowDimensions();
 	const wide = width >= WIDE;
 
-	const shown = sources === "all" ? aircraft : aircraft.filter((a) => a.source === "receiver");
+	const bySource = sources === "all" ? aircraft : aircraft.filter((a) => a.source === "receiver");
+	const shown = applyFilters(bySource, filters);
 	const current = shown.find((a) => a.hex === selected);
 	const receiverCount = aircraft.filter((a) => a.source === "receiver").length;
 	const stored = current?.source === "receiver";
@@ -43,11 +48,17 @@ function Screen() {
 		};
 	}, [selected, stored]);
 
+	// a search result: centre the map on it and open its panel (US09)
+	const pick = (a: LiveAircraft) => {
+		setSelected(a.hex);
+		setFocus({ lon: a.lon, lat: a.lat, key: Date.now() });
+	};
+
 	return (
 		<View style={[styles.root, { backgroundColor: c.bg }]}>
 			<StatusBar style={name === "dark" ? "light" : "dark"} />
 			<View style={styles.map}>
-				<LiveMap aircraft={shown} selectedHex={selected} track={track} onSelect={setSelected} />
+				<LiveMap aircraft={shown} selectedHex={selected} track={track} focus={focus} onSelect={setSelected} />
 				<TopBar
 					receiverCount={receiverCount}
 					networkCount={aircraft.length - receiverCount}
@@ -55,7 +66,9 @@ function Screen() {
 					status={status}
 					sources={sources}
 					onSources={setSources}
-				/>
+				>
+					<SearchFilters filters={filters} onChange={setFilters} matches={shown} total={bySource.length} onPick={pick} />
+				</TopBar>
 			</View>
 			{current ? (
 				<View style={wide ? styles.side : styles.sheet}>

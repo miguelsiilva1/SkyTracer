@@ -1,0 +1,29 @@
+@startuml
+autonumber
+actor "User" as U
+participant "SearchFilters" as F
+participant "App (Screen)" as App
+participant "filters.ts\napplyFilters()" as Fn
+participant "LiveMap" as M
+participant "useLiveAircraft\n(WS /ws/live)" as WS
+
+U -> F : chooses altitude band / emergency / with route
+F -> App : onChange(filters)
+App -> App : setFilters(filters)
+App -> Fn : applyFilters(bySource, filters)
+activate Fn
+loop for each aircraft
+  Fn -> Fn : inBand(altitude) AND emergency squawk\nAND known route AND every keyword
+end
+Fn --> App : shown[]
+deactivate Fn
+App -> M : aircraft = shown
+App -> F : matches = shown, total
+F -> U : "Showing {shown} of {total} aircraft"
+
+== Every live update (~3 s) ==
+WS -> App : aircraft[]
+App -> Fn : applyFilters(bySource, filters)
+Fn --> App : shown[]
+App -> M : aircraft = shown
+@enduml

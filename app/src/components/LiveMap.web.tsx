@@ -23,10 +23,18 @@ import type { LiveAircraft, TrackPoint } from "../types";
 // worker copied to public/ by scripts/copy-maplibre-worker.mjs
 setWorkerUrl(`${process.env.EXPO_BASE_URL ?? ""}/maplibre-gl-worker.mjs`);
 
+/** Where to centre the map; a new `key` moves it again to the same place. */
+export interface MapFocus {
+	lon: number;
+	lat: number;
+	key: number;
+}
+
 export interface LiveMapProps {
 	aircraft: LiveAircraft[];
 	selectedHex: string | null;
 	track: TrackPoint[];
+	focus?: MapFocus | null;
 	onSelect: (hex: string | null) => void;
 }
 
@@ -98,7 +106,7 @@ function trackFeatures(points: TrackPoint[], live: LiveAircraft | undefined): Fe
 /** Tints the base map's land and water with the theme, so map and panels read as one surface. */
 function tintBaseMap(m: MapLibre, c: Palette) {
 	for (const layer of m.getStyle().layers) {
-		if (layer.type === "background") m.setPaintProperty(layer.id, "background-color", c.bg);
+		if (layer.type === "background" && layer.id === "background") m.setPaintProperty(layer.id, "background-color", c.bg);
 		else if (layer.type === "fill" && layer.id.startsWith("water")) m.setPaintProperty(layer.id, "fill-color", c.surfaceSunk);
 	}
 }
@@ -143,7 +151,7 @@ function addOverlay(m: MapLibre, c: Palette, theme: ThemeName) {
 			"icon-allow-overlap": true,
 			"icon-ignore-placement": true,
 			"text-field": ["step", ["zoom"], "", 8, ["get", "label"]],
-			"text-font": ["Noto Sans Regular"],
+			"text-font": ["noto_sans_regular"],
 			"text-size": 11,
 			"text-offset": [0, 1.6],
 			"text-anchor": "top",
@@ -160,7 +168,7 @@ function addOverlay(m: MapLibre, c: Palette, theme: ThemeName) {
 	});
 }
 
-export default function LiveMap({ aircraft, selectedHex, track, onSelect }: LiveMapProps) {
+export default function LiveMap({ aircraft, selectedHex, track, focus, onSelect }: LiveMapProps) {
 	const { name, c } = useTheme();
 	const container = useRef<HTMLDivElement>(null);
 	const map = useRef<MapLibre | null>(null);
@@ -217,6 +225,12 @@ export default function LiveMap({ aircraft, selectedHex, track, onSelect }: Live
 		const live = aircraft.find((a) => a.hex === selectedHex);
 		(m.getSource("track") as GeoJSONSource).setData(selectedHex ? trackFeatures(track, live) : EMPTY);
 	}, [overlay, aircraft, selectedHex, track]);
+
+	useEffect(() => {
+		const m = map.current;
+		if (!m || !focus) return;
+		m.flyTo({ center: [focus.lon, focus.lat], zoom: Math.max(m.getZoom(), 8) });
+	}, [focus]);
 
 	return <div ref={container} style={{ position: "absolute", inset: 0, background: c.bg }} />;
 }

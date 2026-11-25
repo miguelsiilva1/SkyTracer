@@ -51,10 +51,15 @@ const dark: Palette = {
 
 export const palettes: Record<ThemeName, Palette> = { light, dark, standard: light };
 
+/**
+ * Base maps from VersaTiles (free OpenStreetMap vector tiles, no key). OpenFreeMap was replaced
+ * because common ad blockers block its tile addresses, which left the map without a background.
+ */
+const VERSATILES = "https://tiles.versatiles.org/assets/styles";
 export const mapStyles: Record<ThemeName, string> = {
-	light: "https://tiles.openfreemap.org/styles/positron",
-	dark: "https://tiles.openfreemap.org/styles/dark",
-	standard: "https://tiles.openfreemap.org/styles/liberty",
+	light: `${VERSATILES}/graybeard/style.json`,
+	dark: `${VERSATILES}/eclipse/style.json`,
+	standard: `${VERSATILES}/colorful/style.json`,
 };
 
 /** Whether the base map is tinted with the theme colours (the standard map keeps its own). */

@@ -4,6 +4,8 @@ Real-time air traffic visualisation system for the Porto region, developed for t
 
 The system collects the Mode S / ADS-B messages decoded by the **dump1090** receiver provided by the course, persists them in a database and enriches them with information from free public sources (routes, photos, registrations and weather). Its goal is to offer, at no cost, features that are paid in commercial services such as FlightRadar24: history and replay, alerts, statistics and a receiver coverage map.
 
+**Web app:** https://miguelsiilva1.github.io/SkyTracer/ · **API:** https://skytracer.tail46dc6e.ts.net (for example [`/health`](https://skytracer.tail46dc6e.ts.net/health))
+
 ## Contents
 
 1. [Architecture](#1-architecture)

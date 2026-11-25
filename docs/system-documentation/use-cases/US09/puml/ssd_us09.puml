@@ -3,8 +3,16 @@ autonumber
 actor "User" as A
 participant "System" as S
 
-A -> S : searchAircraft(query)
+A -> S : searchAircraft(keywords)
 activate S
-S --> A : returns matching aircraft (visible first)
+alt matching live aircraft
+  S --> A : lists the matching aircraft and shows only them on the map
+  A -> S : chooseResult(hex)
+  S --> A : centres the map on the aircraft and shows its details
+else ICAO address not received now
+  S --> A : shows its identification and when it was last seen
+else no match
+  S --> A : informs that no aircraft match
+end
 deactivate S
 @enduml

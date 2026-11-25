@@ -1,0 +1,40 @@
+@startuml
+autonumber
+actor "User" as U
+participant "SearchFilters" as F
+participant "App (Screen)" as App
+participant "filters.ts" as Fn
+participant "LiveMap" as M
+participant "api.ts" as Api
+participant "Backend\nGET /aircraft/{hex}" as B
+
+U -> F : types keywords
+F -> App : onChange({query})
+App -> Fn : applyFilters(bySource, filters)
+Fn --> App : shown[]
+App -> M : aircraft = shown
+App -> F : matches = shown
+
+alt matches not empty
+  F -> U : lists up to 5 results
+  U -> F : chooses a result (or presses Enter)
+  F -> App : onPick(aircraft)
+  App -> App : setSelected(hex)\nsetFocus({lon, lat})
+  App -> M : focus
+  M -> M : flyTo(lon, lat)
+  App -> U : opens the aircraft panel (US07)
+else no match and hexQuery(query) is an ICAO address
+  F -> Api : fetchAircraft(hex)
+  Api -> B : GET /aircraft/{hex}
+  alt 200, live = null
+    B --> Api : registration, type, last_seen
+    F -> U : "{name} is not being received. Last seen {time} UTC"
+  else 200, live present
+    F -> U : "Received now, but hidden by the filters"
+  else 404
+    F -> U : "No aircraft match"
+  end
+else no match
+  F -> U : "No aircraft match"
+end
+@enduml

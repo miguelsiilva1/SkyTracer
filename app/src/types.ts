@@ -69,3 +69,14 @@ export interface TrackPoint {
 }
 
 export type ConnectionStatus = "connecting" | "live" | "reconnecting";
+
+/** GET /aircraft/{hex}: stored data, and the live state when it is being received now. */
+export interface KnownAircraft {
+	hex: string;
+	registration: string | null;
+	icao_type: string | null;
+	type_name: string | null;
+	operator: string | null;
+	last_seen: string | null;
+	live: LiveAircraft | null;
+}

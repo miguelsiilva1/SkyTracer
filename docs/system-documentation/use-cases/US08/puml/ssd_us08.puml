@@ -3,8 +3,11 @@ autonumber
 actor "User" as A
 participant "System" as S
 
-A -> S : filterAircraft(origin, destination, minAltitude, maxAltitude, airline, aircraftType)
+A -> S : filterAircraft(altitudeBand, emergencyOnly, withRouteOnly, keywords)
 activate S
-S --> A : returns visible aircraft matching all filters
+S --> A : shows the live aircraft matching every filter, and how many out of the total
 deactivate S
+loop every live update
+  S --> A : applies the same filters to the new state
+end
 @enduml

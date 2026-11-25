@@ -20,7 +20,8 @@ The app uses the production API by default; `EXPO_PUBLIC_API_URL` points it to a
 App.tsx                       layout: map, header and aircraft panel
 src/
   useLiveAircraft.ts          live state from WS /ws/live, with automatic reconnection (US06)
-  api.ts                      REST calls (track, US10)
+  api.ts                      REST calls (track, US10; stored aircraft, US09)
+  filters.ts                  search keywords and quick filters over the live state (US08, US09)
   altitude.ts                 altitude colour scale shared by icons, track and legend
   theme.ts                    design tokens: day and night palettes, map styles, type scale, spacing
   ThemeContext.tsx            day / night theme, remembered on the device
@@ -29,6 +30,7 @@ src/
     LiveMap.tsx               native placeholder until the native map (Sprint 3, US18)
     AircraftPanel.tsx         aircraft details as a flight progress strip: route, live values, photo (US03, US04, US07)
     TopBar.tsx                title block: connection status, altitude scale, day / night switch
+    SearchFilters.tsx         search field, results and quick filters inside the title block (US08, US09)
 assets/source/                SVG sources of the app icon, splash and favicon (PNGs rendered from them)
 ```
 
@@ -40,4 +42,4 @@ Expo picks `LiveMap.web.tsx` on the web and `LiveMap.tsx` on Android and iOS. Th
 
 ## Deployment
 
-The web build is published to GitHub Pages by the `Web app (GitHub Pages)` workflow on every push to `main` that changes `app/`.
+The web build is published to GitHub Pages by the `Web app (GitHub Pages)` workflow on every push to `main` that changes `app/`, at https://miguelsiilva1.github.io/SkyTracer/. The published site needs no local process: it connects directly to the production API.
