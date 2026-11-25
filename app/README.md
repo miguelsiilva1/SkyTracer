@@ -29,8 +29,9 @@ src/
     LiveMap.web.tsx           maplibre-gl map (browser)
     LiveMap.tsx               native placeholder until the native map (Sprint 3, US18)
     AircraftPanel.tsx         aircraft details as a flight progress strip: route, live values, photo (US03, US04, US07)
-    TopBar.tsx                title block: connection status, altitude scale, day / night switch
-    SearchFilters.tsx         search field, results and quick filters inside the title block (US08, US09)
+    TopBar.tsx                title block in ruled sections: status, search, filters, legend, theme and language;
+                              on narrow screens a compact bar whose filters open on demand
+    SearchFilters.tsx         search field and results (US09), quick filters (US08)
 assets/source/                SVG sources of the app icon, splash and favicon (PNGs rendered from them)
 ```
 

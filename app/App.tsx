@@ -5,7 +5,6 @@ import { fetchTrack } from "./src/api";
 import { applyFilters, type Filters, NO_FILTERS } from "./src/filters";
 import AircraftPanel from "./src/components/AircraftPanel";
 import LiveMap, { type MapFocus } from "./src/components/LiveMap";
-import SearchFilters from "./src/components/SearchFilters";
 import TopBar, { type SourceFilter } from "./src/components/TopBar";
 import { TRACK_MINUTES, TRACK_REFRESH_MS } from "./src/config";
 import { LanguageProvider } from "./src/i18n";
@@ -66,9 +65,13 @@ function Screen() {
 					status={status}
 					sources={sources}
 					onSources={setSources}
-				>
-					<SearchFilters filters={filters} onChange={setFilters} matches={shown} total={bySource.length} onPick={pick} />
-				</TopBar>
+					filters={filters}
+					onFilters={setFilters}
+					matches={shown}
+					total={aircraft.length}
+					onPick={pick}
+					compact={!wide}
+				/>
 			</View>
 			{current ? (
 				<View style={wide ? styles.side : styles.sheet}>
