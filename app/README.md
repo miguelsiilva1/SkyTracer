@@ -12,7 +12,7 @@ npm run typecheck
 npm run build:web    # static export to app/dist/, served under /SkyTracer
 ```
 
-The app uses the production API by default; `EXPO_PUBLIC_API_URL` points it to another backend (for example a local `wrangler dev`). The API only accepts browser requests from the production site and from the Expo development server (`localhost:8081`).
+The app uses the production API by default; `EXPO_PUBLIC_API_URL` points it to another backend (for example a local backend). The API only accepts browser requests from the production site and from the Expo development server (`localhost:8081`).
 
 ## Structure
 

@@ -17,7 +17,7 @@
 
 ## Preconditions
 
-- The `Tracker` Durable Object is running its collection loop.
+- The backend (`Tracker`) is running its collection loop.
 
 ## Postconditions
 
@@ -27,7 +27,7 @@
 
 1. The user opens the map.
 2. The app opens a WebSocket connection to `/ws/live`.
-3. The system accepts the connection as a hibernatable WebSocket and sends the live state.
+3. The system accepts the WebSocket connection and sends the live state.
 4. On each loop iteration (every 3 s), the system builds the message **once** and sends it to all connected clients.
 5. The app updates the position and orientation of the icons.
 
@@ -41,7 +41,7 @@
 ## Design Rationale
 
 - **Single broadcast**: the message is built once per iteration from memory, with no database access, regardless of the number of clients.
-- Hibernatable WebSockets (`ctx.acceptWebSocket`) are kept by the Cloudflare runtime, so open connections do not keep the Durable Object billed between iterations.
+- WebSockets are served by the `ws` library on the same port as the REST API. Clients never send data, so their messages are limited to 1 KB, and a client more than 1 MB behind is disconnected, protecting the memory of the container.
 - The initial state is sent upon connection, so the client does not wait for the next iteration.
 
 ## Diagrams

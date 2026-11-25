@@ -42,7 +42,7 @@
 
 ## Design Rationale
 
-- The live state stays in memory: it is rewritten on every read and rebuilt from the receiver in seconds, and storing it would exceed the 100,000 daily writes of the Cloudflare free plan.
+- The live state stays in memory: it is rewritten on every read and rebuilt from the receiver in seconds, so storing it would only add database writes without benefit.
 - Writing in batches (one request every 15 s) keeps the number of requests low; the 15 s resolution keeps the history within the 500 MB of the Supabase free plan for 7 days.
 - `GREATEST(last_seen)` and `COALESCE(category)` prevent older or null data from overwriting valid data.
 - Purging old data runs in the database itself (daily `pg_cron` job), outside the collection loop.

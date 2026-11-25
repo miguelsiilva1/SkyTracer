@@ -1,6 +1,6 @@
 # US23 — Aircraft from the adsb.fi network
 
-**Epic:** E2 · **Priority:** S · **SP:** 3 · **Status:** ⏸️ implemented in Sprint 2, disabled in production
+**Epic:** E2 · **Priority:** S · **SP:** 3 · **Status:** ✅ implemented in Sprint 2
 
 ## User Story
 
@@ -19,11 +19,11 @@
 
 - adsb.fi was chosen among the free, legal sources (no scraping) for its explicit terms: personal, non-commercial use, one request per second, attribution. OpenSky (account and OAuth, about one request every 22 s) and airplanes.live (unconfirmed daily quota) were the alternatives.
 - Keeping the network live-only preserves the coverage analysis (US17), which must reflect the course receiver alone, and keeps the database within the free plan.
-- The network read happens inside the existing alarm, so it adds no Durable Object requests or storage writes.
+- The network read happens inside the existing collection loop and writes nothing to the database.
 
 ## Production Status
 
-The source is disabled in production (empty network URL). Tests from Cloudflare's servers showed that every free ADS-B API rejects them: adsb.fi (HTTP 403), OpenSky (HTTP 522), adsb.lol (HTTP 429, shared egress addresses) and airplanes.live (HTTP 403); none allows direct browser requests from another site (CORS). Working around these restrictions (proxies, home relays) was rejected, as was any paid source. The implementation and its tests are kept; the application hides the source legend, filter and attribution while no network aircraft are present.
+The source is enabled in production. While the backend ran on Cloudflare, every free ADS-B API rejected its requests: adsb.fi (HTTP 403), OpenSky (HTTP 522), adsb.lol (HTTP 429, shared egress addresses) and airplanes.live (HTTP 403); none allows direct browser requests from another site (CORS), and paid sources were rejected. These APIs block datacenter addresses, not residential ones: from a home connection adsb.fi answers HTTP 200. The backend was therefore moved to a home server, published over HTTPS by Tailscale Funnel. The application hides the source legend, filter and attribution whenever no network aircraft are present.
 
 ## Diagrams
 

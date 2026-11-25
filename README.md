@@ -22,9 +22,9 @@ The system collects the Mode S / ADS-B messages decoded by the **dump1090** rece
         │  aircraft.json every 3 s          │
         ▼                                   ▼
  ┌──────────────────────────────────────────────────────┐
- │  Cloudflare Worker + Tracker Durable Object          │
+ │  Node.js backend (Docker, home server)               │
  │  collection loop · live state (memory) · enrichment  │   REST + WebSocket   ┌──────────────────────────┐
- │  REST / WebSocket API                                │ ───────────────────▶ │ Expo app (React Native)  │
+ │  REST / WebSocket API, published by Tailscale Funnel │ ───────────────────▶ │ Expo app (React Native)  │
  └──────────────────────────┬───────────────────────────┘                      │ web · Android · iOS      │
                             │ batched writes / history reads                   └──────────────────────────┘
                             ▼
@@ -33,15 +33,17 @@ The system collects the Mode S / ADS-B messages decoded by the **dump1090** rece
                  └──────────────────────┘
 ```
 
-A single Durable Object (`Tracker`) runs the whole backend. An alarm fires every 3 s: it reads the receiver, updates the live state of each aircraft in memory, enriches at most one aircraft or route, writes the buffered history to Supabase every 15 s and pushes the live state to the WebSocket clients. The API serves the live state from memory and the history from Supabase, so it keeps answering (last known state and history) even if the receiver or the external APIs fail.
+A single Node.js process runs the whole backend, centred on the `Tracker` class. A loop runs every 3 s: it reads the receiver, updates the live state of each aircraft in memory, enriches at most one aircraft or route, writes the buffered history to Supabase every 15 s and pushes the live state to the WebSocket clients. The API serves the live state from memory and the history from Supabase, so it keeps answering (last known state and history) even if the receiver or the external APIs fail.
 
-The design fits the free plans: the live state never touches storage (the Durable Object free plan allows 100,000 rows written per day), and the history is written in one request per flush to Supabase, whose free plan limits the database to 500 MB.
+The backend runs in a Docker container on a home server and is published over HTTPS by a Tailscale Funnel container, so no router port is opened. The live state never touches storage, and the history is written in one request per flush to Supabase, whose free plan limits the database to 500 MB.
+
+The backend first ran on Cloudflare Workers with a Durable Object. It moved to a home server because the free ADS-B network APIs reject requests from datacenter addresses such as Cloudflare's, but accept a residential one (see section 3).
 
 ## 2. Repository structure
 
 | Folder | Contents |
 |---|---|
-| `backend/` | TypeScript Worker: `dump1090` (parsing), `collector` (live state and history buffer), `enrichment` (adsbdb, planespotters), `tracker` (Durable Object: loop and API) and `index` (entry point); tests in `backend/test/` |
+| `backend/` | TypeScript backend on Node.js: `dump1090` (parsing), `network` (adsb.fi), `collector` (live state and history buffer), `enrichment` (adsbdb, planespotters), `tracker` (loop and API), `server` (HTTP and WebSocket) and `main` (entry point); `Dockerfile` and `compose.yaml` for deployment; tests in `backend/test/` |
 | `supabase/` | Database migrations (tables, write functions and retention job) |
 | `app/` | Expo / React Native application (web, Android and iOS), with MapLibre maps |
 | `docs/` | Backlog and system documentation (glossary, domain model, class diagram, use cases, SSD and SD) |
@@ -52,12 +54,12 @@ The design fits the free plans: the live state never touches storage (the Durabl
 | Source | Used for | Stored |
 |---|---|---|
 | Course receiver, `https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json` (dump1090-mutability) | Positions and flight data of every aircraft received in Porto | Yes: history, replay, statistics and coverage use **only** this source |
-| [adsb.fi](https://adsb.fi) open data API (community ADS-B network, 250 NM around Porto) — **disabled in production** | Aircraft beyond the reach of the course receiver, and parameters the receiver does not decode (GPS altitude, true and indicated airspeed, Mach, wind, temperature) | No: shown live only |
+| [adsb.fi](https://adsb.fi) open data API (community ADS-B network, 250 NM around Porto) | Aircraft beyond the reach of the course receiver, and parameters the receiver does not decode (GPS altitude, true and indicated airspeed, Mach, wind, temperature) | No: shown live only |
 | [adsbdb](https://www.adsbdb.com) and [planespotters.net](https://www.planespotters.net) | Enrichment: registration, model, operator, route and photo | As a cache |
 
 Every live aircraft carries its source (`"receiver"` or `"adsb.fi"`), and the application distinguishes them on the map, in the legend and in the aircraft panel. adsb.fi data is used under its terms (personal, non-commercial use, at most one request per second, credited with a link).
 
-The network source is implemented but disabled in production: the free ADS-B APIs tested (adsb.fi, OpenSky, adsb.lol, airplanes.live) reject requests from Cloudflare's servers and do not allow direct browser requests (CORS), so the live map currently shows only the course receiver. Enabling it only requires setting the network URL in the Worker configuration where such requests are allowed.
+The free ADS-B APIs tested (adsb.fi, OpenSky, adsb.lol, airplanes.live) reject requests from datacenter addresses and do not allow direct browser requests (CORS). The backend therefore runs on a residential connection, from which adsb.fi answers normally.
 
 ## 4. Backend
 
@@ -95,10 +97,10 @@ The coverage map (US17) will use an aggregated table (maximum range per bearing)
 ```bash
 cd backend
 npm install
-npm run dev      # Worker and Durable Object at http://localhost:8787
+npm run dev      # builds and starts the backend at http://localhost:8080
 ```
 
-The local Worker reads the Supabase project and its secret key from the repository's local `.env` file, which is never committed.
+The backend reads the Supabase project and its secret key from the repository's local `.env` file, which is never committed.
 
 ## 6. Testing
 
@@ -108,23 +110,23 @@ npm run typecheck
 npm test
 ```
 
-The tests run inside the Workers runtime (Vitest with the Cloudflare plugin), with the receiver, Supabase and the external APIs replaced by stubs.
+The tests run on Node.js with Vitest, with the receiver, adsb.fi, Supabase and the external APIs replaced by stubs.
 
 ## 7. Production deployment
 
 | Component | Platform |
 |---|---|
-| Collection, enrichment and API | Cloudflare Workers + Durable Objects (free plan) |
+| Collection, enrichment and API | Docker container on a home server (ZimaOS), published by Tailscale Funnel at `https://skytracer.tail46dc6e.ts.net` |
 | History and enrichment cache | Supabase PostgreSQL (free plan) |
 | Web application (static Expo export) | GitHub Pages |
 | CI/CD | GitHub Actions |
 
 ```bash
 cd backend
-npx wrangler deploy
+docker compose up -d --build
 ```
 
-The Supabase project URL, its secret key and the HTTP User-Agent (with contact details, required by planespotters) are configured as Worker secrets. After a deploy, any request (for example `GET /health`) starts the collection loop.
+`compose.yaml` starts two containers: the backend (memory limit 256 MB) and a Tailscale container that owns the network, obtains the HTTPS certificate and forwards the public traffic to the backend. The Supabase credentials and the HTTP User-Agent (with contact details, required by planespotters) are read from a `.env` file next to `compose.yaml`, which exists only on the server. Both containers restart automatically, and on shutdown the backend writes the history still buffered to Supabase.
 
 ## 8. Project management and documentation
 

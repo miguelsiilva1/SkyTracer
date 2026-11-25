@@ -1,16 +1,15 @@
 @startuml
 autonumber
-participant "Cloudflare\n<<runtime>>" as CF
-participant "Tracker\n<<DurableObject>>" as T
+participant "main.ts\n<<entry point>>" as M
+participant "Tracker" as T
 participant "dump1090\n<<external>>" as D
 participant "dump1090.ts\nparseSnapshot()" as Parser
 participant "Collector\ningest()\n(US02)" as C
 
+M -> T : start()
 loop every POLL_INTERVAL (3 s)
-  CF -> T : alarm()
+  T -> T : run()
   activate T
-  T -> T : storage.setAlarm(now + 3 s)
-  note right: scheduled first, so the loop\nsurvives any failure below
   T -> T : tick(now)
   T -> D : GET aircraft.json (timeout 5 s)
   D --> T : 200 JSON
@@ -34,6 +33,8 @@ loop every POLL_INTERVAL (3 s)
     T -> C : ingest(snap)
     T -> T : lastRead = now
   end
+  T -> T : setTimeout(run, 3 s − elapsed)
+  note right: always scheduled, even after a failure;\nticks never overlap
   deactivate T
 end
 @enduml

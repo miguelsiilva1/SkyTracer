@@ -8,7 +8,7 @@
 
 ## Acceptance Criteria
 
-- The system reads `aircraft.json` every 3 s (alarm of the `Tracker` Durable Object).
+- The system reads `aircraft.json` every 3 s (loop of the backend's `Tracker`).
 - Accepts fields from dump1090-mutability (`altitude`, `speed`, `vert_rate`) and dump1090-fa (`alt_baro`, `gs`, `baro_rate`).
 - If reading fails, it logs the error and retries on the next iteration without terminating.
 - Position timestamp is calculated from `seen_pos`; positions older than 60 s are not considered current.
@@ -24,10 +24,10 @@
 
 ## Main Success Scenario
 
-1. The Durable Object alarm triggers a new read and schedules the next one.
+1. The loop triggers a new read.
 2. The system requests `aircraft.json` from dump1090.
 3. The system normalises each aircraft (field names, absolute timestamps, altitude/ground).
-4. The system hands over the snapshot to the collector (US02) and waits for the next alarm.
+4. The system hands over the snapshot to the collector (US02) and schedules the next iteration.
 
 ## Alternative Flows / Exceptions
 
@@ -41,8 +41,7 @@
 
 - `dump1090.ts` contains only pure functions (`parseSnapshot`, `parseAircraft`), allowing it to be tested without network or database (`test/dump1090.test.ts`).
 - Timestamps are calculated as `now − seen` / `now − seen_pos`, using the receiver's own `now`, to avoid saving the same old position with different timestamps.
-- The next alarm is scheduled **before** the read, so the loop survives any failure in the iteration.
-- The 3 s interval keeps the Cloudflare free plan within its daily limits (one Durable Object request and one storage write per alarm, about 29,000 per day out of 100,000).
+- The next iteration is **always** scheduled, even after a failure, and two iterations never overlap (a chained `setTimeout`, not `setInterval`).
 
 ## Diagrams
 

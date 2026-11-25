@@ -1,5 +1,5 @@
 -- SkyTracer: history and enrichment cache (Supabase / PostgreSQL).
--- Written only by the Cloudflare Worker with the secret key; RLS without policies blocks
+-- Written only by the backend with the secret key; RLS without policies blocks
 -- every other client.
 
 -- An aircraft, identified by its 24-bit ICAO address

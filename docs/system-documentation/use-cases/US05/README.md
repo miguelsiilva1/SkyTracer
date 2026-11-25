@@ -39,7 +39,7 @@
 ## Design Rationale
 
 - One `ApiGate` per API, because each API has its own limits.
-- `ApiGate` never sleeps: it only says whether a request is allowed at a given instant, so the Durable Object is never kept busy waiting (CPU and duration count against the free plan). Time is passed as a parameter, allowing throttle and backoff to be tested without real delays.
+- `ApiGate` never sleeps: it only says whether a request is allowed at a given instant, so the loop is never kept busy waiting. Time is passed as a parameter, allowing throttle and backoff to be tested without real delays.
 - The database is the persistent cache and survives restarts; the memory copy avoids a query per iteration.
 
 ## Diagrams

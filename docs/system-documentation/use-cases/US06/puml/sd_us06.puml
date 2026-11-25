@@ -1,30 +1,34 @@
 @startuml
 autonumber
 actor "User" as U
-participant "App Expo\n(Sprint 2)" as App
-participant "Worker\nfetch()" as W
-participant "Tracker\n<<DurableObject>>" as T
+participant "App Expo" as App
+participant "server.ts\n<<HTTP + ws>>" as S
+participant "Tracker" as T
 
 U -> App : open map
-App -> W : WS connect /ws/live
-W -> T : forward request
+App -> S : WS connect /ws/live (upgrade)
+activate S
+S -> S : handleUpgrade()\n(maxPayload 1 KB)
+S -> T : addClient(ws)
+deactivate S
 activate T
-T -> T : WebSocketPair()\nctx.acceptWebSocket(server)
-note right: hibernatable WebSocket:\nkept by the runtime
+T -> T : clients.add(ws)
 T -> T : liveMessage(now)
 T --> App : initial state {ts, aircraft[]}
-T --> W : 101 Switching Protocols
 deactivate T
 App -> U : draws icons (rotation = track_deg)
 
 == Collection loop (US01), every 3 s ==
 loop every POLL_INTERVAL
   T -> T : tick(now)
-  opt ctx.getWebSockets() not empty
+  opt clients not empty
     T -> T : liveMessage(now)\n(aircraft with position ≤ 60 s old)
-    loop for each WebSocket
-      T -> App : send(message)
-      note right: errors ignored: the runtime\nremoves closed sockets
+    loop for each client
+      alt more than 1 MB buffered
+        T -> T : ws.terminate()
+      else
+        T -> App : send(message)
+      end
     end
   end
 end
@@ -32,5 +36,5 @@ App -> U : updates positions
 
 == Disconnect ==
 App -> T : close
-T -> T : webSocketClose(ws)
+T -> T : clients.delete(ws)
 @enduml
