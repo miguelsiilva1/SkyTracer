@@ -30,6 +30,6 @@ Modules containing only functions are shown with the `<<module>>` stereotype and
 Notes:
 
 - **From DM to CD:** domain concepts are not persistent classes (no ORM is used); they exist as PostgreSQL tables in Supabase and as plain interfaces that carry data between layers (`AircraftState`, `LiveAircraft`, `AircraftInfo`, `RouteInfo`, `Photo`). The **Live State** exists only in memory (`Collector.live`).
-- **`Tracker`** (Durable Object) is the single always-on component: it owns the `Collector`, the `Enricher` and the `Supabase` client, runs the loop in `alarm()` and answers the API in `fetch()`.
+- **`Tracker`** is the single always-on component: it owns the `Collector`, the `Enricher` and the `Supabase` client, runs the loop (`start()`, `tick()`) and answers the REST API in `handle()`; the `server` module adapts Node's HTTP server to it and keeps the WebSocket clients (`addClient()`).
 - **Parsing separated from I/O:** `dump1090`, `adsbdb` and `planespotters` convert JSON into objects without side effects; external HTTP access is isolated in `ApiGate` and database access in `Supabase`.
-- **`Config`** is the single source of configuration, built from the Worker variables and secrets by `loadConfig`.
+- **`Config`** is the single source of configuration, built from the environment variables by `loadConfig`.

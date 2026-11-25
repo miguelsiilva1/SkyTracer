@@ -4,17 +4,26 @@ skinparam shadowing false
 skinparam packageStyle rectangle
 hide empty members
 
-title SkyTracer — Class Diagram (backend: Cloudflare Worker)
+title SkyTracer — Class Diagram (backend: Node.js)
 
-package "index" {
-  class worker <<module>> {
-    + fetch(request : Request, env : Env) : Response
-    - corsHeaders(request : Request, env : Env) : Record<string, string>
+package "main" {
+  class main <<module>> {
+    - shutdown() : void <<async>>
+  }
+}
+
+package "server" {
+  class server <<module>> {
+    + handle(request : Request, tracker : Tracker, cfg : Config) : Response <<async>>
+    + startServer(tracker : Tracker, cfg : Config, port : number) : Server
+    - corsHeaders(origin : string | null, cfg : Config) : Record<string, string>
+    - toRequest(req : IncomingMessage) : Request
   }
 }
 
 package "config" {
   class Config <<interface>> {
+    + port : number
     + dump1090Url : string
     + networkUrl : string
     + networkIntervalMs : number
@@ -30,12 +39,12 @@ package "config" {
     + supabaseKey : string
   }
   class config <<module>> {
-    + loadConfig(env : Env) : Config
+    + loadConfig(env : Env = process.env) : Config
   }
 }
 
 package "tracker" {
-  class Tracker <<DurableObject>> {
+  class Tracker {
     - cfg : Config
     - db : Supabase
     - collector : Collector
@@ -44,14 +53,17 @@ package "tracker" {
     - lastRead : number | null
     - network : Map<string, NetworkAircraft>
     - lastNetworkRead : number | null
+    - clients : Set<WebSocket>
+    - timer : Timeout
+    - running : boolean
     --
-    + alarm() : void <<async>>
+    + start() : void
+    + stop() : void <<async>>
     + tick(now : number) : void <<async>>
     + flush() : void <<async>>
     + liveAircraft(maxAgeS : number, now : number) : object[]
-    + fetch(request : Request) : Response <<async>>
-    + webSocketMessage() : void <<async>>
-    + webSocketClose(ws : WebSocket) : void <<async>>
+    + addClient(ws : WebSocket) : void
+    + handle(request : Request) : Response <<async>>
     - readNetwork(now : number) : void <<async>>
     - present(live : LiveAircraft, source, network?) : object
     - liveMessage(now : number) : string
@@ -216,13 +228,15 @@ package "supabase" {
   class SupabaseError <<Error>>
 }
 
-worker ..> Tracker : forwards requests
-worker ..> config : uses
+main ..> config : loadConfig
+main ..> Tracker : creates, start / stop
+main ..> server : startServer
+server ..> Tracker : forwards requests and WebSocket clients
+server ..> Config
 
 Tracker "1" *-- "1" Collector
 Tracker "1" *-- "1" Enricher
 Tracker "1" *-- "1" Supabase
-Tracker ..> config : loadConfig
 Tracker ..> dump1090 : parseSnapshot
 Tracker ..> Config
 Tracker "1" o-- "*" NetworkAircraft : network (live only)

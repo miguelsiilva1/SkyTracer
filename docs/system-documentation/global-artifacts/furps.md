@@ -21,12 +21,14 @@ _Features that are not specific to a single use case._
 
 ## Reliability
 
-- Collection, enrichment and API run in a single Durable Object; each step of the loop handles its own errors, so a failure in one (receiver, external API or database) does not stop the others.
+- Collection, enrichment and API run in a single backend process; each step of the loop handles its own errors, so a failure in one (receiver, external API or database) does not stop the others.
 - The API serves the live state from memory and never calls external APIs, so the last known state and the history remain available even if the receiver or the external APIs are unreachable.
 - History that cannot be written to the database is kept in memory and written with the next batch.
 - Failed reads of the receiver are logged and retried on the next cycle without stopping the service.
 - External API calls are retried with exponential backoff, honouring `Retry-After`; failures are cached and retried after one hour.
-- The next iteration is always scheduled before the current one runs, so the loop survives any failure; Cloudflare restarts the Durable Object automatically if it is evicted.
+- The next iteration is always scheduled, even after a failure, and two iterations never overlap; Docker restarts the container automatically if the process stops.
+- On shutdown, the history still buffered is written to the database.
+- Malformed requests are rejected without affecting the service, and WebSocket clients that fall too far behind are disconnected.
 
 ## Performance
 
@@ -37,9 +39,9 @@ _Features that are not specific to a single use case._
 
 ## Supportability
 
-- **Testability:** parsing logic is implemented as pure functions, tested without network or database access; the Durable Object is tested inside the Workers runtime with the receiver, the database and the external APIs replaced by stubs.
+- **Testability:** parsing logic is implemented as pure functions, tested without network or database access; the tracker and the server are tested on Node.js with the receiver, the adsb.fi network, the database and the external APIs replaced by stubs.
 - **Maintainability:** code is type-checked (TypeScript) and tested on every pull request through GitHub Actions.
-- **Configurability:** intervals, TTLs, URLs and allowed origins are Worker variables with sensible defaults.
+- **Configurability:** intervals, TTLs, URLs and allowed origins are environment variables with sensible defaults.
 - **Data retention:** historical data is kept for 7 days (daily `pg_cron` job); enrichment caches are refreshed according to their TTL (aircraft: 30 days; route: 7 days).
 - **Database evolution:** schema changes are versioned SQL migrations in `supabase/migrations/`.
 
@@ -48,22 +50,22 @@ _Features that are not specific to a single use case._
 ### Design Constraints
 
 - Scrum process with two-week sprints; every change reaches `main` through a pull request.
-- Only free services and free-tier infrastructure may be used; the design must stay within the daily limits of the Cloudflare Workers free plan (100,000 Durable Object requests and 100,000 storage rows written, shared with other applications on the same account) and the 500 MB database of the Supabase free plan.
+- Only free services and free-tier infrastructure may be used; the design must stay within the 500 MB database of the Supabase free plan and the memory available on the home server.
 
 ### Implementation Constraints
 
-- Backend: TypeScript on Cloudflare Workers and Durable Objects.
+- Backend: TypeScript on Node.js 22, packaged as a Docker image.
 - Database: PostgreSQL on Supabase, accessed through its REST interface (PostgREST).
 - Client: Expo (React Native) with MapLibre, as a single codebase for all platforms.
 - Diagrams: PlantUML.
 
 ### Interface Constraints
 
-- Input: dump1090 `aircraft.json` over HTTPS.
+- Input: dump1090 `aircraft.json` and the adsb.fi open data API over HTTPS; adsb.fi rejects requests from datacenter addresses, so the backend must run on a residential connection.
 - External APIs: adsbdb and planespotters.net (REST/JSON), identified by a `User-Agent` that includes contact information.
 - Output: REST and WebSocket API (JSON), documented in the repository README.
 
 ### Physical Constraints
 
-- The backend runs on Cloudflare Workers (free plan) and the database on Supabase (free plan); no server is managed.
+- The backend runs in Docker on a home server (ZimaOS) and is published over HTTPS by Tailscale Funnel, without opening router ports; the database runs on Supabase (free plan).
 - The web application is published as a static site on GitHub Pages; therefore the API must be served over HTTPS/WSS.
