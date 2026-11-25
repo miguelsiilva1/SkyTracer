@@ -180,7 +180,7 @@ export default function LiveMap({ aircraft, selectedHex, track, onSelect }: Live
 			zoom: MAP_ZOOM,
 			attributionControl: {
 				compact: true,
-				customAttribution: 'Aircraft: STAER receiver (Porto) and <a href="https://adsb.fi" target="_blank" rel="noopener">adsb.fi</a>',
+				customAttribution: "Aircraft: STAER receiver (Porto)",
 			},
 		});
 		m.addControl(new NavigationControl({ showCompass: false }), "bottom-right");
