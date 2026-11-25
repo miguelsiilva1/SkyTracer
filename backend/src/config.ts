@@ -4,7 +4,7 @@ export type Env = Record<string, string | undefined>;
 export interface Config {
 	port: number;
 	dump1090Url: string;
-	networkUrl: string; // empty disables the adsb.fi network source
+	networkUrls: string[]; // adsb.fi areas read in turn; empty disables the network source
 	networkIntervalMs: number;
 	pollIntervalMs: number;
 	positionMinIntervalMs: number;
@@ -20,7 +20,14 @@ export interface Config {
 
 const DAY_MS = 86_400_000;
 const DUMP1090_URL = "https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json";
-const NETWORK_URL = "https://opendata.adsb.fi/api/v3/lat/41.24/lon/-8.68/dist/250";
+/** adsb.fi allows at most 250 NM per request: these circles cover the Iberian Peninsula. */
+const NETWORK_AREAS: [number, number][] = [
+	[41.24, -8.68], // Porto
+	[40.42, -3.7], // Madrid
+	[37.39, -5.98], // Seville
+	[41.39, 2.17], // Barcelona
+];
+const NETWORK_URLS = NETWORK_AREAS.map(([lat, lon]) => `https://opendata.adsb.fi/api/v3/lat/${lat}/lon/${lon}/dist/250`).join(",");
 const CORS_ORIGINS = "https://miguelsiilva1.github.io,http://localhost:8081,http://localhost:19006";
 
 function num(value: string | undefined, fallback: number): number {
@@ -38,7 +45,7 @@ export function loadConfig(env: Env = process.env): Config {
 	return {
 		port: num(env.PORT, 8080),
 		dump1090Url: env.DUMP1090_URL || DUMP1090_URL,
-		networkUrl: env.NETWORK_URL ?? NETWORK_URL,
+		networkUrls: (env.NETWORK_URLS ?? NETWORK_URLS).split(",").map((u) => u.trim()).filter(Boolean),
 		networkIntervalMs: num(env.NETWORK_INTERVAL_SECONDS, 10) * 1000,
 		pollIntervalMs: num(env.POLL_INTERVAL_SECONDS, 3) * 1000,
 		positionMinIntervalMs: num(env.POSITION_MIN_INTERVAL_SECONDS, 15) * 1000,

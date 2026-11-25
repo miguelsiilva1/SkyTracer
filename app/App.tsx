@@ -17,7 +17,8 @@ const WIDE = 768;
 
 function Screen() {
 	const { name, c } = useTheme();
-	const { aircraft, updatedAt, status } = useLiveAircraft();
+	const { aircraft, updatedAt, status, setView } = useLiveAircraft();
+	const [bbox, setBbox] = useState<[number, number, number, number] | null>(null);
 	const [selected, setSelected] = useState<string | null>(null);
 	const [track, setTrack] = useState<TrackPoint[]>([]);
 	const [sources, setSources] = useState<SourceFilter>("all");
@@ -47,6 +48,11 @@ function Screen() {
 		};
 	}, [selected, stored]);
 
+	// only the adsb.fi aircraft in the area shown are received; the selected one is always kept
+	useEffect(() => {
+		if (bbox) setView({ bbox, keep: selected ? [selected] : [] });
+	}, [bbox, selected, setView]);
+
 	// a search result: centre the map on it and open its panel (US09)
 	const pick = (a: LiveAircraft) => {
 		setSelected(a.hex);
@@ -57,7 +63,7 @@ function Screen() {
 		<View style={[styles.root, { backgroundColor: c.bg }]}>
 			<StatusBar style={name === "dark" ? "light" : "dark"} />
 			<View style={styles.map}>
-				<LiveMap aircraft={shown} selectedHex={selected} track={track} focus={focus} onSelect={setSelected} />
+				<LiveMap aircraft={shown} selectedHex={selected} track={track} focus={focus} onViewport={setBbox} onSelect={setSelected} />
 				<TopBar
 					receiverCount={receiverCount}
 					networkCount={aircraft.length - receiverCount}

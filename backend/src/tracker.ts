@@ -2,7 +2,7 @@
  * Tracker: the always-on core of SkyTracer.
  *
  * A loop runs every POLL_INTERVAL: it reads aircraft.json, updates the live state (kept in
- * memory), reads the adsb.fi network every NETWORK_INTERVAL, enriches one aircraft or route,
+ * memory), reads one adsb.fi area in turn (each refreshed every NETWORK_INTERVAL), enriches one aircraft or route,
  * flushes the buffered history to Supabase every FLUSH_INTERVAL and pushes the live state to the
  * WebSocket clients. The API answers live data from memory and history from Supabase, so it keeps
  * working (last known state and history) even if the receiver or the external APIs fail.
@@ -25,6 +25,7 @@ const PLANESPOTTERS_URL = "https://api.planespotters.net/pub/photos";
 const LIVE_MAX_AGE_S = 60;
 const FETCH_TIMEOUT_MS = 5_000;
 const WS_MAX_BUFFERED_BYTES = 1_000_000; // a client this far behind is dropped
+const VIEW_REPLY_INTERVAL_MS = 1000;
 
 const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
 
@@ -35,9 +36,11 @@ export class Tracker {
 	private lastFlush = 0;
 	private lastRead: number | null = null;
 	private network = new Map<string, NetworkAircraft>();
+	private readonly areas = new Map<string, NetworkAircraft[]>(); // last snapshot of each adsb.fi area
+	private nextArea = 0;
 	private lastNetworkRead: number | null = null;
 	private lastNetworkAttempt = 0;
-	private readonly clients = new Set<WebSocket>();
+	private readonly clients = new Map<WebSocket, View | null>();
 	private timer: ReturnType<typeof setTimeout> | undefined;
 	private running = false;
 
@@ -80,7 +83,7 @@ export class Tracker {
 	async stop(): Promise<void> {
 		this.running = false;
 		clearTimeout(this.timer);
-		for (const ws of this.clients) ws.close(1001);
+		for (const ws of this.clients.keys()) ws.close(1001);
 		await this.flush();
 	}
 
@@ -98,9 +101,13 @@ export class Tracker {
 			console.warn(`dump1090 read failed: ${err}`);
 		}
 
-		if (this.cfg.networkUrl && now - this.lastNetworkAttempt >= this.cfg.networkIntervalMs) {
+		// one area per turn, so each is refreshed every NETWORK_INTERVAL and adsb.fi gets at most
+		// one request per second
+		const urls = this.cfg.networkUrls;
+		if (urls.length && now - this.lastNetworkAttempt >= Math.max(1000, this.cfg.networkIntervalMs / urls.length)) {
 			this.lastNetworkAttempt = now;
-			await this.readNetwork(now);
+			const url = urls[this.nextArea++ % urls.length]!;
+			await this.readNetwork(url, now);
 		}
 
 		try {
@@ -116,32 +123,57 @@ export class Tracker {
 		}
 
 		if (this.clients.size) {
-			const message = this.liveMessage(now);
-			for (const ws of this.clients) {
+			const all = this.liveAircraft(LIVE_MAX_AGE_S, now);
+			const full = JSON.stringify({ ts: iso(now), aircraft: all });
+			for (const [ws, view] of this.clients) {
 				if (ws.bufferedAmount > WS_MAX_BUFFERED_BYTES) ws.terminate();
-				else ws.send(message);
+				else ws.send(view ? JSON.stringify({ ts: iso(now), aircraft: inView(all, view) }) : full);
 			}
 		}
 	}
 
-	/** Registers a WebSocket client of /ws/live and sends it the current state right away. */
+	/**
+	 * Registers a WebSocket client of /ws/live and sends it the current state right away. A client
+	 * may send `{"bbox": [west, south, east, north], "keep": [hex]}`: it then receives every receiver
+	 * aircraft but only the network aircraft inside that area (and those in `keep`).
+	 */
 	addClient(ws: WebSocket): void {
-		this.clients.add(ws);
+		this.clients.set(ws, null);
 		ws.on("close", () => this.clients.delete(ws));
 		ws.on("error", () => this.clients.delete(ws));
+		let lastReply = 0;
+		ws.on("message", (data) => {
+			const view = parseView(String(data));
+			if (!view || !this.clients.has(ws)) return;
+			this.clients.set(ws, view);
+			// answer a new area right away at most once per second; otherwise the next tick does it
+			const now = Date.now();
+			if (now - lastReply < VIEW_REPLY_INTERVAL_MS) return;
+			if (ws.bufferedAmount > WS_MAX_BUFFERED_BYTES) return void ws.terminate();
+			lastReply = now;
+			ws.send(JSON.stringify({ ts: iso(now), aircraft: inView(this.liveAircraft(LIVE_MAX_AGE_S, now), view) }));
+		});
 		ws.send(this.liveMessage(Date.now()));
 	}
 
-	/** Replaces the network snapshot; on failure the previous one simply ages out. */
-	private async readNetwork(now: number): Promise<void> {
+	/** Replaces the snapshot of one area and merges all areas; on failure the old one simply ages out. */
+	private async readNetwork(url: string, now: number): Promise<void> {
 		try {
-			const resp = await fetch(this.cfg.networkUrl, {
+			const resp = await fetch(url, {
 				headers: { "User-Agent": this.cfg.userAgent },
 				signal: AbortSignal.timeout(FETCH_TIMEOUT_MS),
 			});
 			if (!resp.ok) throw new Error(`HTTP ${resp.status}`);
 			const { aircraft } = parseNetwork(await resp.json());
-			this.network = new Map(aircraft.map((n) => [n.state.hex, n]));
+			this.areas.set(url, aircraft);
+			// areas overlap: an aircraft seen in several keeps its most recent state
+			const merged = new Map<string, NetworkAircraft>();
+			for (const list of this.areas.values())
+				for (const n of list) {
+					const old = merged.get(n.state.hex);
+					if (!old || n.state.ts > old.state.ts) merged.set(n.state.hex, n);
+				}
+			this.network = merged;
 			this.lastNetworkRead = now;
 		} catch (err) {
 			console.warn(`${NETWORK_NAME} read failed: ${err}`);
@@ -291,6 +323,38 @@ export class Tracker {
 
 		return Response.json({ detail: "Not found" }, { status: 404 });
 	}
+}
+
+/** Area of the map a WebSocket client is showing, and aircraft it always wants (the selected one). */
+interface View {
+	west: number;
+	south: number;
+	east: number;
+	north: number;
+	keep: Set<string>;
+}
+
+const HEX = /^[0-9a-f]{6}$/;
+
+function parseView(text: string): View | null {
+	try {
+		const { bbox, keep } = JSON.parse(text) as { bbox?: unknown; keep?: unknown };
+		if (!Array.isArray(bbox) || bbox.length !== 4 || !bbox.every((v) => typeof v === "number" && Number.isFinite(v))) return null;
+		const [west, south, east, north] = bbox as number[];
+		const hexes = Array.isArray(keep) ? keep.filter((h): h is string => typeof h === "string" && HEX.test(h)).slice(0, 10) : [];
+		return { west: west!, south: south!, east: east!, north: north!, keep: new Set(hexes) };
+	} catch {
+		return null;
+	}
+}
+
+/** Receiver aircraft always; network aircraft only inside the view (or kept). */
+function inView<T extends { hex: string; source: string; lat: number | null; lon: number | null }>(list: T[], v: View): T[] {
+	return list.filter((a) => {
+		if (a.source === "receiver" || v.keep.has(a.hex)) return true;
+		if (a.lat === null || a.lon === null || a.lat < v.south || a.lat > v.north) return false;
+		return v.west <= v.east ? a.lon >= v.west && a.lon <= v.east : a.lon >= v.west || a.lon <= v.east; // across 180°
+	});
 }
 
 /** Live-state view of an aircraft known only from the network. */

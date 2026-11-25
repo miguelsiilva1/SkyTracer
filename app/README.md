@@ -19,7 +19,7 @@ The app uses the production API by default; `EXPO_PUBLIC_API_URL` points it to a
 ```
 App.tsx                       layout: map, header and aircraft panel
 src/
-  useLiveAircraft.ts          live state from WS /ws/live, with automatic reconnection (US06)
+  useLiveAircraft.ts          live state from WS /ws/live, with automatic reconnection (US06); reports the visible area
   api.ts                      REST calls (track, US10; stored aircraft, US09)
   filters.ts                  search keywords and quick filters over the live state (US08, US09)
   altitude.ts                 altitude colour scale shared by icons, track and legend

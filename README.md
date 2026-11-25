@@ -56,7 +56,7 @@ The backend first ran on Cloudflare Workers with a Durable Object. It moved to a
 | Source | Used for | Stored |
 |---|---|---|
 | Course receiver, `https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json` (dump1090-mutability) | Positions and flight data of every aircraft received in Porto | Yes: history, replay, statistics and coverage use **only** this source |
-| [adsb.fi](https://adsb.fi) open data API (community ADS-B network, 250 NM around Porto) | Aircraft beyond the reach of the course receiver, and parameters the receiver does not decode (GPS altitude, true and indicated airspeed, Mach, wind, temperature) | No: shown live only |
+| [adsb.fi](https://adsb.fi) open data API (community ADS-B network, four 250 NM areas covering the Iberian Peninsula) | Aircraft beyond the reach of the course receiver, and parameters the receiver does not decode (GPS altitude, true and indicated airspeed, Mach, wind, temperature) | No: shown live only |
 | [adsbdb](https://www.adsbdb.com) and [planespotters.net](https://www.planespotters.net) | Enrichment: registration, model, operator, route and photo | As a cache |
 
 Every live aircraft carries its source (`"receiver"` or `"adsb.fi"`), and the application distinguishes them on the map, in the legend and in the aircraft panel. adsb.fi data is used under its terms (personal, non-commercial use, at most one request per second, credited with a link).
@@ -79,7 +79,7 @@ The free ADS-B APIs tested (adsb.fi, OpenSky, adsb.lol, airplanes.live) reject r
 | `GET /aircraft/live?max_age_seconds=60` | Aircraft with a recent position, including enrichment (registration, model, photo) and route (origin and destination); each has a `source` and, when available, `extra` parameters from adsb.fi |
 | `GET /aircraft/{hex}` | Aircraft data and its current state (`live`, `null` if it is not currently being received) |
 | `GET /aircraft/{hex}/track?minutes=60` | Track: positions stored in the last *N* minutes (maximum 1440) |
-| `WS /ws/live` | Sends the current state on connection and then every ~3 s, in the format `{"ts": ..., "aircraft": [...]}`, identical to `/aircraft/live` |
+| `WS /ws/live` | Sends the current state on connection and then every ~3 s, in the format `{"ts": ..., "aircraft": [...]}`, identical to `/aircraft/live`. A client may send `{"bbox": [west, south, east, north], "keep": [hex]}`: it then receives every receiver aircraft but only the adsb.fi aircraft inside that area, plus those listed in `keep` |
 
 ### 4.2 Retention policy
 
