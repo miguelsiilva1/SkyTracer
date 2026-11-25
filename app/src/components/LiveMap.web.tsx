@@ -106,7 +106,7 @@ function trackFeatures(points: TrackPoint[], live: LiveAircraft | undefined): Fe
 /** Tints the base map's land and water with the theme, so map and panels read as one surface. */
 function tintBaseMap(m: MapLibre, c: Palette) {
 	for (const layer of m.getStyle().layers) {
-		if (layer.type === "background") m.setPaintProperty(layer.id, "background-color", c.bg);
+		if (layer.type === "background" && layer.id === "background") m.setPaintProperty(layer.id, "background-color", c.bg);
 		else if (layer.type === "fill" && layer.id.startsWith("water")) m.setPaintProperty(layer.id, "fill-color", c.surfaceSunk);
 	}
 }
@@ -151,7 +151,7 @@ function addOverlay(m: MapLibre, c: Palette, theme: ThemeName) {
 			"icon-allow-overlap": true,
 			"icon-ignore-placement": true,
 			"text-field": ["step", ["zoom"], "", 8, ["get", "label"]],
-			"text-font": ["Noto Sans Regular"],
+			"text-font": ["noto_sans_regular"],
 			"text-size": 11,
 			"text-offset": [0, 1.6],
 			"text-anchor": "top",
