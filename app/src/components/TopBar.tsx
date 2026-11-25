@@ -1,8 +1,8 @@
 /**
- * Chart title block over the map: name, receiver, connection state, data sources, altitude scale
- * and the theme and language switches.
+ * Chart title block over the map: name, receiver, connection state, search and filters, data
+ * sources, altitude scale and the theme and language switches.
  */
-import { useMemo } from "react";
+import { type ReactNode, useMemo } from "react";
 import { StyleSheet, Text, View } from "react-native";
 import { type Language, type MessageKey, useT } from "../i18n";
 import { altitudeStops, font, type Palette, radius, size, space, type ThemeName } from "../theme";
@@ -26,9 +26,10 @@ interface TopBarProps {
 	status: ConnectionStatus;
 	sources: SourceFilter;
 	onSources: (value: SourceFilter) => void;
+	children?: ReactNode; // search and filters
 }
 
-export default function TopBar({ receiverCount, networkCount, updatedAt, status, sources, onSources }: TopBarProps) {
+export default function TopBar({ receiverCount, networkCount, updatedAt, status, sources, onSources, children }: TopBarProps) {
 	const { name, c, setTheme } = useTheme();
 	const { language, setLanguage, t } = useT();
 	const s = useMemo(() => makeStyles(c), [c]);
@@ -59,6 +60,8 @@ export default function TopBar({ receiverCount, networkCount, updatedAt, status,
 				<View style={[s.dot, { backgroundColor: dot }]} />
 				<Text style={s.statusText}>{text}</Text>
 			</View>
+
+			{children}
 
 			{/* sources legend and filter only when the adsb.fi network is contributing */}
 			{networkCount > 0 && (
