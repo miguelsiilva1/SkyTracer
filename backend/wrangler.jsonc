@@ -13,8 +13,10 @@
 	// (`wrangler secret put`), and `.dev.vars` for local development.
 	"vars": {
 		"DUMP1090_URL": "https://ads-b.jcboliveira.xyz/dump1090/data/aircraft.json",
-		// adsb.fi network, 250 NM around Porto: shown live only, never stored (1 request/s allowed)
-		"NETWORK_URL": "https://opendata.adsb.fi/api/v3/lat/41.24/lon/-8.68/dist/250",
+		// adsb.fi network source: disabled (empty) because the free ADS-B APIs reject requests from
+		// Cloudflare. To enable it where allowed, set it to
+		// https://opendata.adsb.fi/api/v3/lat/41.24/lon/-8.68/dist/250
+		"NETWORK_URL": "",
 		"NETWORK_INTERVAL_SECONDS": "10",
 		"POLL_INTERVAL_SECONDS": "3",
 		"POSITION_MIN_INTERVAL_SECONDS": "15",

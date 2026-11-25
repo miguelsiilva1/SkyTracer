@@ -36,5 +36,5 @@ Status: ✅ done · 🟡 backend done, application pending · ⏳ planned · �
 | [US19](US19/README.md) | Favourites | 4 | ⏳ | ✓ | — |
 | [US21](US21/README.md) | English and Portuguese | 2 | 🟡 | — | — |
 | [US22](US22/README.md) | Extended aircraft and flight data | — | ⏳ | — | — |
-| [US23](US23/README.md) | Aircraft from the adsb.fi network | 2 | 🟡 | — | — |
+| [US23](US23/README.md) | Aircraft from the adsb.fi network | 2 | ⏸️ disabled | — | — |
 | [US20](US20/README.md) | User accounts and sign-in | future | 🔮 | ✓ | — |

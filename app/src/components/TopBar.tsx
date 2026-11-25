@@ -39,7 +39,9 @@ export default function TopBar({ receiverCount, networkCount, updatedAt, status,
 	if (status === "connecting") text = t("status.connecting");
 	else if (status === "reconnecting") text = t("status.reconnecting");
 	else {
-		const n = t("status.count", { receiver: receiverCount, network: networkCount });
+		const n = networkCount
+			? t("status.count", { receiver: receiverCount, network: networkCount })
+			: t("status.countReceiver", { receiver: receiverCount });
 		text = updatedAt ? t("status.updated", { count: n, time: utc(updatedAt) }) : n;
 	}
 
@@ -58,25 +60,30 @@ export default function TopBar({ receiverCount, networkCount, updatedAt, status,
 				<Text style={s.statusText}>{text}</Text>
 			</View>
 
-			<View style={s.legend}>
-				<View style={s.legendItem}>
-					<View style={[s.mark, { backgroundColor: c.text }]} />
-					<Text style={s.legendText}>{t("legend.receiver")}</Text>
-				</View>
-				<View style={s.legendItem}>
-					<View style={[s.mark, s.markOutline]} />
-					<Text style={s.legendText}>{t("legend.network")}</Text>
-				</View>
-			</View>
-			<Segmented
-				label={t("sources.group")}
-				options={[
-					{ value: "all", label: t("sources.all") },
-					{ value: "receiver", label: t("sources.receiver") },
-				]}
-				value={sources}
-				onChange={onSources}
-			/>
+			{/* sources legend and filter only when the adsb.fi network is contributing */}
+			{networkCount > 0 && (
+				<>
+					<View style={s.legend}>
+						<View style={s.legendItem}>
+							<View style={[s.mark, { backgroundColor: c.text }]} />
+							<Text style={s.legendText}>{t("legend.receiver")}</Text>
+						</View>
+						<View style={s.legendItem}>
+							<View style={[s.mark, s.markOutline]} />
+							<Text style={s.legendText}>{t("legend.network")}</Text>
+						</View>
+					</View>
+					<Segmented
+						label={t("sources.group")}
+						options={[
+							{ value: "all", label: t("sources.all") },
+							{ value: "receiver", label: t("sources.receiver") },
+						]}
+						value={sources}
+						onChange={onSources}
+					/>
+				</>
+			)}
 
 			<View>
 				<View style={[s.scale, { backgroundImage: gradient } as object]} />

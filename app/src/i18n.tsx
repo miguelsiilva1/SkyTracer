@@ -16,6 +16,7 @@ const en = {
 	"status.connecting": "Connecting to the receiver",
 	"status.reconnecting": "Connection lost. Reconnecting and showing the last known positions",
 	"status.count": "{receiver} from the Porto receiver, {network} from adsb.fi",
+	"status.countReceiver": "{receiver} aircraft from the Porto receiver",
 	"status.updated": "{count}. Updated {time} UTC",
 	"sources.group": "Aircraft shown",
 	"sources.all": "All sources",
