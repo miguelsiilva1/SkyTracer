@@ -163,6 +163,8 @@ describe("Tracker", () => {
 		ws.send(JSON.stringify({ bbox: [-9.5, 40.5, -7.5, 42] })); // around Porto
 		expect(sources(await next())).toEqual(["4d00f1"]); // the network aircraft at 43.1, -5.2 is outside
 		ws.send(JSON.stringify({ bbox: [-9.5, 40.5, -7.5, 42], keep: ["3c6589"] })); // but it is selected
+		await new Promise((resolve) => setTimeout(resolve, 100));
+		await tick(); // a second area within a second is applied on the next tick, not answered at once
 		expect(sources(await next())).toEqual(["3c6589", "4d00f1"]);
 		ws.send("not json"); // ignored
 		ws.close();

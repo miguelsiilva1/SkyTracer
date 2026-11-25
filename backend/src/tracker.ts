@@ -25,6 +25,7 @@ const PLANESPOTTERS_URL = "https://api.planespotters.net/pub/photos";
 const LIVE_MAX_AGE_S = 60;
 const FETCH_TIMEOUT_MS = 5_000;
 const WS_MAX_BUFFERED_BYTES = 1_000_000; // a client this far behind is dropped
+const VIEW_REPLY_INTERVAL_MS = 1000;
 
 const iso = (ms: number | null) => (ms === null ? null : new Date(ms).toISOString());
 
@@ -140,11 +141,17 @@ export class Tracker {
 		this.clients.set(ws, null);
 		ws.on("close", () => this.clients.delete(ws));
 		ws.on("error", () => this.clients.delete(ws));
+		let lastReply = 0;
 		ws.on("message", (data) => {
 			const view = parseView(String(data));
 			if (!view || !this.clients.has(ws)) return;
 			this.clients.set(ws, view);
-			ws.send(JSON.stringify({ ts: iso(Date.now()), aircraft: inView(this.liveAircraft(LIVE_MAX_AGE_S, Date.now()), view) }));
+			// answer a new area right away at most once per second; otherwise the next tick does it
+			const now = Date.now();
+			if (now - lastReply < VIEW_REPLY_INTERVAL_MS) return;
+			if (ws.bufferedAmount > WS_MAX_BUFFERED_BYTES) return void ws.terminate();
+			lastReply = now;
+			ws.send(JSON.stringify({ ts: iso(now), aircraft: inView(this.liveAircraft(LIVE_MAX_AGE_S, now), view) }));
 		});
 		ws.send(this.liveMessage(Date.now()));
 	}
