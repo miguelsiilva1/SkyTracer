@@ -89,8 +89,9 @@ The free ADS-B APIs tested (adsb.fi, OpenSky, adsb.lol, airplanes.live) reject r
 | `position` | ≤ 1 per aircraft every 15 s | 7 days (daily `pg_cron` job) |
 | `receiver_snapshot` | One every 15 s | 7 days (daily `pg_cron` job) |
 | `aircraft`, `flight_route` | Enrichment cache | Unlimited (small tables, refreshed according to their TTL) |
+| `coverage_cell` | Every stored position is added to its cell (0.05° × 0.05°, per altitude band) by a database trigger | Unlimited (a few thousand rows) |
 
-The coverage map (US17) will use an aggregated table (maximum range per bearing) that is not subject to retention.
+The coverage map (US17) is built from `coverage_cell`: a geographic grid of 0.05° cells (about 5.5 × 4.2 km at Porto) per altitude band, with the number of positions, the mean and maximum RSSI and the lowest altitude seen. It does not depend on the receiver location, so the range per bearing can be derived from it at any time, and it keeps the whole history although positions are deleted after 7 days.
 
 ## 5. Running locally
 
