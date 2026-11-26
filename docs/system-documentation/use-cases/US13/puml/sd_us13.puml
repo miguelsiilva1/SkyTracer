@@ -1,0 +1,35 @@
+@startuml
+autonumber
+actor "User" as U
+participant "AlertControls" as C
+participant "useAlerts" as H
+participant "App (Screen)" as App
+participant "useLiveAircraft\n(WS /ws/live)" as WS
+participant "Tracker" as T
+
+U -> C : enables military, adds "C295"
+C -> H : setSettings(settings)
+H -> H : localStorage.setItem(settings)
+App -> WS : setView({bbox, keep, military, watch})
+WS -> T : {"bbox": …, "military": true, "watch": ["C295"]}
+T -> T : parseView() (watch: 2–10 [A-Z0-9-], max 20)
+
+loop every iteration (~3 s)
+  T -> T : inView(): receiver aircraft, network aircraft in bbox,\nand anywhere: kept, emergency squawk, military, watched
+  T --> WS : {ts, aircraft[]}
+  WS -> App : aircraft[]
+  App -> H : aircraft (live only, not during replay)
+  H -> H : reasons = alertReasons(a, settings)
+  alt matches and not already alerted
+    H -> H : alerts.unshift(alert); active.add(hex)
+    opt browser notifications granted
+      H -> U : Notification(callsign, reason)
+    end
+  end
+  H -> H : active = currently matching\n(an aircraft that leaves can alert again)
+end
+
+U -> App : chooses an alert
+App -> App : pick(aircraft): select + flyTo
+App -> U : aircraft panel
+@enduml

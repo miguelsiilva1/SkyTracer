@@ -27,6 +27,7 @@ export interface NetworkAircraft {
 	registration: string | null;
 	icao_type: string | null;
 	type_name: string | null;
+	military: boolean; // adsb.fi database flag (bit 0 of dbFlags)
 	extra: NetworkExtra;
 }
 
@@ -47,6 +48,7 @@ export function parseNetwork(payload: unknown): { now: number; aircraft: Network
 			registration: str(raw.r),
 			icao_type: str(raw.t),
 			type_name: str(raw.desc),
+			military: ((num(raw.dbFlags) ?? 0) & 1) === 1,
 			extra: {
 				alt_geom_ft: num(raw.alt_geom),
 				tas_kt: num(raw.tas),

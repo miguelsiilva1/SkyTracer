@@ -10,6 +10,8 @@ import { type Language, type MessageKey, useT } from "../i18n";
 import { altitudeStops, font, type Palette, radius, size, space, type ThemeName } from "../theme";
 import { useTheme } from "../ThemeContext";
 import type { ConnectionStatus, LiveAircraft } from "../types";
+import type { AlertSettings } from "../alerts";
+import { AlertControls } from "./Alerts";
 import { activeFilters, FilterControls, Row, SearchBox } from "./SearchFilters";
 import Segmented from "./Segmented";
 
@@ -37,6 +39,8 @@ interface TopBarProps {
 	compact: boolean;
 	replayAt: number | null; // replay time, or null when live
 	onReplay: () => void;
+	alertSettings: AlertSettings;
+	onAlertSettings: (s: AlertSettings) => void;
 }
 
 export default function TopBar(p: TopBarProps) {
@@ -87,6 +91,8 @@ export default function TopBar(p: TopBarProps) {
 					total={p.total}
 				/>,
 			)}
+
+			{section("alerts", t("section.alerts"), <AlertControls settings={p.alertSettings} onChange={p.onAlertSettings} />)}
 
 			{section(
 				"legend",

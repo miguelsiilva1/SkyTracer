@@ -4,10 +4,15 @@ import type { ConnectionStatus, LiveAircraft, LiveMessage } from "./types";
 
 const MAX_BACKOFF_MS = 30_000;
 
-/** Map area shown ([west, south, east, north]) and aircraft always wanted (the selected one). */
+/**
+ * Map area shown ([west, south, east, north]), aircraft always wanted (the selected one) and the
+ * alert settings, so the server also sends the aircraft that alerts need outside the area.
+ */
 export interface LiveView {
 	bbox: [number, number, number, number];
 	keep: string[];
+	military: boolean;
+	watch: string[];
 }
 
 /**

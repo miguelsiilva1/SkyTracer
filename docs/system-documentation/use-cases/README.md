@@ -27,7 +27,7 @@ Status: ✅ done · 🟡 backend done, application pending · ⏳ planned · �
 | [US10](US10/README.md) | Track | 1 | ✅ | ✓ | ✓ |
 | [US11](US11/README.md) | METAR | 4 | ⏳ | ✓ | — |
 | [US12](US12/README.md) | Replay | 1 | ✅ | ✓ | ✓ |
-| [US13](US13/README.md) | Alerts | 3 | ⏳ | ✓ | — |
+| [US13](US13/README.md) | Alerts | 1 | ✅ | ✓ | ✓ |
 | [US14](US14/README.md) | LPPR arrivals and departures | 4 | ⏳ | ✓ | — |
 | [US15](US15/README.md) | Daily statistics | 4 | ⏳ | ✓ | — |
 | [US16](US16/README.md) | 3D view | 4 | ⏳ | ✓ | — |
