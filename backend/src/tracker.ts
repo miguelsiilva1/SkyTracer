@@ -281,8 +281,9 @@ export class Tracker {
 			"position",
 			`select=hex,ts,callsign,lat,lon,altitude_ft,on_ground,speed_kt,track_deg,vert_rate_fpm,squawk,mlat&ts=gte.${since}&ts=lt.${until}&order=ts`,
 		);
-		const hexes = [...new Set(positions.map((p) => p.hex))];
-		const callsigns = [...new Set(positions.map((p) => p.callsign).filter((c): c is string => Boolean(c)))];
+		// identifiers come from received data: only well-formed ones reach a query
+		const hexes = [...new Set(positions.map((p) => p.hex))].filter((h) => HEX.test(h));
+		const callsigns = [...new Set(positions.map((p) => p.callsign))].filter((c): c is string => !!c && CALLSIGN.test(c));
 		const [aircraft, routes] = await Promise.all([
 			hexes.length ? this.db.selectAll("aircraft", `select=${REPLAY_AIRCRAFT}&hex=in.${inList(hexes)}`) : [],
 			callsigns.length ? this.db.selectAll("flight_route", `select=${REPLAY_ROUTE}&status=eq.ok&callsign=in.${inList(callsigns)}`) : [],
@@ -368,6 +369,7 @@ interface View {
 }
 
 const HEX = /^[0-9a-f]{6}$/;
+const CALLSIGN = /^[A-Z0-9]{1,8}$/;
 
 function parseView(text: string): View | null {
 	try {

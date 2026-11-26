@@ -123,10 +123,11 @@ describe("Tracker", () => {
 		positions = [
 			{ hex: "4d00f1", ts: "2026-11-24T10:00:05+00:00", callsign: "LGL32PR", lat: 41.3, lon: -8.6 },
 			{ hex: "4d00f1", ts: "2026-11-24T10:00:20+00:00", callsign: "LGL32PR", lat: 41.31, lon: -8.6 },
+			{ hex: "4d00f1", ts: "2026-11-24T10:00:35+00:00", callsign: "X&limit=1", lat: 41.32, lon: -8.6 }, // malformed: not queried
 		];
 		const resp = await get("/replay?from=2026-11-24T10:00:00Z&minutes=10");
 		const body = (await resp.json()) as any;
-		expect(body.positions).toHaveLength(2);
+		expect(body.positions).toHaveLength(3);
 		const q = selects.find((u) => u.pathname.endsWith("/position"))!;
 		expect(q.searchParams.getAll("ts")).toEqual(["gte.2026-11-24T09:59:00.000Z", "lt.2026-11-24T10:10:00.000Z"]);
 		expect(q.searchParams.get("limit")).toBe("1000");

@@ -43,7 +43,7 @@ export class Supabase {
 	}
 }
 
-/** Quotes a value for a PostgREST `in.(...)` filter. */
+/** Quotes and URL-encodes values for a PostgREST `in.(...)` filter. */
 export function inList(values: Iterable<string>): string {
-	return `(${[...values].map((v) => `"${v.replace(/["\\]/g, "")}"`).join(",")})`;
+	return `(${[...values].map((v) => `"${encodeURIComponent(v.replace(/["\\]/g, ""))}"`).join(",")})`;
 }
