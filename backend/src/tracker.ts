@@ -18,7 +18,7 @@ import { type AircraftState, parseSnapshot } from "./dump1090";
 import { Enricher } from "./enrichment/enricher";
 import { ApiGate } from "./enrichment/http";
 import { hasExtra, NETWORK_NAME, type NetworkAircraft, parseNetwork } from "./network";
-import { Supabase } from "./supabase";
+import { inList, Supabase } from "./supabase";
 
 const ADSBDB_URL = "https://api.adsbdb.com/v0";
 const PLANESPOTTERS_URL = "https://api.planespotters.net/pub/photos";
@@ -269,6 +269,28 @@ export class Tracker {
 		return JSON.stringify({ ts: iso(now), aircraft: this.liveAircraft(LIVE_MAX_AGE_S, now) });
 	}
 
+	/**
+	 * Stored positions (course receiver only) from `from` − 60 s to `from` + `minutes` (US12), with
+	 * the identification of those aircraft and the routes of their callsigns, so the app can rebuild
+	 * the airspace at any instant of the window: the last position of each aircraft in the 60 s before it.
+	 */
+	private async replay(from: number, minutes: number) {
+		const since = new Date(from - LIVE_MAX_AGE_S * 1000).toISOString();
+		const until = new Date(from + minutes * 60_000).toISOString();
+		const positions = await this.db.selectAll<{ hex: string; callsign: string | null }>(
+			"position",
+			`select=hex,ts,callsign,lat,lon,altitude_ft,on_ground,speed_kt,track_deg,vert_rate_fpm,squawk,mlat&ts=gte.${since}&ts=lt.${until}&order=ts`,
+		);
+		// identifiers come from received data: only well-formed ones reach a query
+		const hexes = [...new Set(positions.map((p) => p.hex))].filter((h) => HEX.test(h));
+		const callsigns = [...new Set(positions.map((p) => p.callsign))].filter((c): c is string => !!c && CALLSIGN.test(c));
+		const [aircraft, routes] = await Promise.all([
+			hexes.length ? this.db.selectAll("aircraft", `select=${REPLAY_AIRCRAFT}&hex=in.${inList(hexes)}`) : [],
+			callsigns.length ? this.db.selectAll("flight_route", `select=${REPLAY_ROUTE}&status=eq.ok&callsign=in.${inList(callsigns)}`) : [],
+		]);
+		return { from: new Date(from).toISOString(), until, positions, aircraft, routes };
+	}
+
 	/** Answers the REST routes (the WebSocket route is handled by the server). */
 	async handle(request: Request): Promise<Response> {
 		const url = new URL(request.url);
@@ -290,6 +312,14 @@ export class Tracker {
 			const maxAge = intParam(url, "max_age_seconds", LIVE_MAX_AGE_S, 1, 300);
 			if (maxAge === null) return invalid("max_age_seconds must be an integer between 1 and 300");
 			return Response.json(this.liveAircraft(maxAge, now));
+		}
+
+		if (path === "/replay") {
+			const from = Date.parse(url.searchParams.get("from") ?? "");
+			if (!Number.isFinite(from)) return invalid("from must be an ISO 8601 timestamp");
+			const minutes = intParam(url, "minutes", 10, 1, 15);
+			if (minutes === null) return invalid("minutes must be an integer between 1 and 15");
+			return Response.json(await this.replay(from, minutes));
 		}
 
 		const match = path.match(/^\/aircraft\/([^/]+)(\/track)?$/);
@@ -325,6 +355,10 @@ export class Tracker {
 	}
 }
 
+const REPLAY_AIRCRAFT = "hex,registration,icao_type,type_name,manufacturer,operator,country,photo_url,photo_credit,photo_link";
+const REPLAY_ROUTE =
+	"callsign,airline_name,airline_icao,airline_iata,origin_icao,origin_iata,origin_name,origin_lat,origin_lon,dest_icao,dest_iata,dest_name,dest_lat,dest_lon";
+
 /** Area of the map a WebSocket client is showing, and aircraft it always wants (the selected one). */
 interface View {
 	west: number;
@@ -335,6 +369,7 @@ interface View {
 }
 
 const HEX = /^[0-9a-f]{6}$/;
+const CALLSIGN = /^[A-Z0-9]{1,8}$/;
 
 function parseView(text: string): View | null {
 	try {

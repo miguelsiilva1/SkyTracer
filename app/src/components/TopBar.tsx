@@ -35,6 +35,8 @@ interface TopBarProps {
 	total: number;
 	onPick: (aircraft: LiveAircraft) => void;
 	compact: boolean;
+	replayAt: number | null; // replay time, or null when live
+	onReplay: () => void;
 }
 
 export default function TopBar(p: TopBarProps) {
@@ -42,13 +44,16 @@ export default function TopBar(p: TopBarProps) {
 	const { language, setLanguage, t } = useT();
 	const s = useMemo(() => makeStyles(c), [c]);
 	const [open, setOpen] = useState(false);
-	const dot = p.status === "live" ? c.blue : c.warning;
+	const dot = p.status === "live" && p.replayAt === null ? c.blue : c.warning;
 	const gradient = `linear-gradient(90deg, ${altitudeStops.map(([, col], i) => `${col} ${(i / (altitudeStops.length - 1)) * 100}%`).join(", ")})`;
 	const hasNetwork = p.networkCount > 0;
 	const nActive = activeFilters(p.filters, p.sources);
 
 	let text: string;
-	if (p.status === "connecting") text = t("status.connecting");
+	if (p.replayAt !== null) {
+		const iso = new Date(p.replayAt).toISOString();
+		text = t("replay.status", { time: `${iso.slice(0, 10)} ${iso.slice(11, 16)}` });
+	} else if (p.status === "connecting") text = t("status.connecting");
 	else if (p.status === "reconnecting") text = t("status.reconnecting");
 	else if (p.compact) {
 		const total = p.receiverCount + p.networkCount;
@@ -142,6 +147,11 @@ export default function TopBar(p: TopBarProps) {
 					<View style={s.status}>
 						<View style={[s.dot, { backgroundColor: dot }]} />
 						<Text style={s.statusText}>{text}</Text>
+						{p.replayAt === null ? (
+							<Pressable onPress={p.onReplay} accessibilityRole="button" accessibilityLabel={t("replay.open")} style={s.replay}>
+								<Text style={s.replayText}>{t("replay.tag")}</Text>
+							</Pressable>
+						) : null}
 					</View>
 				</View>
 
@@ -192,6 +202,8 @@ const makeStyles = (c: Palette) =>
 		status: { flexDirection: "row", alignItems: "center", gap: space[2], marginTop: space[1], flexShrink: 1 },
 		dot: { width: 8, height: 8, borderRadius: 4 },
 		statusText: { flexShrink: 1, fontFamily: font.text, fontSize: size.xs, color: c.text },
+		replay: { marginLeft: "auto", borderWidth: 1, borderColor: c.rule, borderRadius: radius.md, paddingVertical: 2, paddingHorizontal: space[2] },
+		replayText: { fontFamily: font.text, fontSize: size.xs, color: c.text },
 		section: { gap: space[3], paddingVertical: space[4], borderTopWidth: 1, borderColor: c.rule },
 		grow: { flex: 1 },
 		settings: { flexDirection: "row", flexWrap: "wrap", columnGap: space[5], rowGap: space[3] },

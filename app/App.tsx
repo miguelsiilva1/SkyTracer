@@ -5,12 +5,14 @@ import { fetchTrack } from "./src/api";
 import { applyFilters, type Filters, NO_FILTERS } from "./src/filters";
 import AircraftPanel from "./src/components/AircraftPanel";
 import LiveMap, { type MapFocus } from "./src/components/LiveMap";
+import ReplayBar from "./src/components/ReplayBar";
 import TopBar, { type SourceFilter } from "./src/components/TopBar";
 import { TRACK_MINUTES, TRACK_REFRESH_MS } from "./src/config";
 import { LanguageProvider } from "./src/i18n";
 import { ThemeProvider, useTheme } from "./src/ThemeContext";
 import type { LiveAircraft, TrackPoint } from "./src/types";
 import { useLiveAircraft } from "./src/useLiveAircraft";
+import { useReplay } from "./src/useReplay";
 
 const FONTS = "https://fonts.googleapis.com/css2?family=B612:wght@400;700&family=B612+Mono:wght@400;700&display=swap";
 const WIDE = 768;
@@ -26,12 +28,16 @@ function Screen() {
 	const [focus, setFocus] = useState<MapFocus | null>(null);
 	const { width } = useWindowDimensions();
 	const wide = width >= WIDE;
+	const replay = useReplay();
 
-	const bySource = sources === "all" ? aircraft : aircraft.filter((a) => a.source === "receiver");
+	// during a replay (US12) the map shows the stored airspace instead of the live one
+	const base = replay.active ? replay.aircraft : aircraft;
+	const bySource = sources === "all" ? base : base.filter((a) => a.source === "receiver");
 	const shown = applyFilters(bySource, filters);
 	const current = shown.find((a) => a.hex === selected);
-	const receiverCount = aircraft.filter((a) => a.source === "receiver").length;
-	const stored = current?.source === "receiver";
+	const receiverCount = base.filter((a) => a.source === "receiver").length;
+	const stored = current?.source === "receiver" && !replay.active;
+	const shownTrack = replay.active && selected ? replay.trackOf(selected) : track;
 
 	// track of the selected aircraft (US10), refreshed while it stays selected; only receiver
 	// positions are stored, so network-only aircraft have no track
@@ -63,10 +69,10 @@ function Screen() {
 		<View style={[styles.root, { backgroundColor: c.bg }]}>
 			<StatusBar style={name === "dark" ? "light" : "dark"} />
 			<View style={styles.map}>
-				<LiveMap aircraft={shown} selectedHex={selected} track={track} focus={focus} onViewport={setBbox} onSelect={setSelected} />
+				<LiveMap aircraft={shown} selectedHex={selected} track={shownTrack} focus={focus} onViewport={setBbox} onSelect={setSelected} />
 				<TopBar
 					receiverCount={receiverCount}
-					networkCount={aircraft.length - receiverCount}
+					networkCount={base.length - receiverCount}
 					updatedAt={updatedAt}
 					status={status}
 					sources={sources}
@@ -74,10 +80,27 @@ function Screen() {
 					filters={filters}
 					onFilters={setFilters}
 					matches={shown}
-					total={aircraft.length}
+					total={base.length}
 					onPick={pick}
 					compact={!wide}
+					replayAt={replay.at}
+					onReplay={() => replay.start(Date.now() - 60 * 60_000)}
 				/>
+				{replay.active && replay.at !== null ? (
+					<ReplayBar
+						at={replay.at}
+						playing={replay.playing}
+						speed={replay.speed}
+						loading={replay.loading}
+						error={replay.error}
+						empty={!replay.loading && !replay.error && replay.aircraft.length === 0}
+						onSeek={replay.start}
+						onPlay={replay.setPlaying}
+						onSpeed={replay.setSpeed}
+						onLive={replay.stop}
+						wide={wide}
+					/>
+				) : null}
 			</View>
 			{current ? (
 				<View style={wide ? styles.side : styles.sheet}>

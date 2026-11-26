@@ -131,8 +131,9 @@ export function FilterControls({
 	const set = (patch: Partial<Filters>) => onChange({ ...filters, ...patch });
 	const active = isFiltering(filters) || sources !== "all";
 
-	const Toggle = ({ on, label, onPress }: { on: boolean; label: string; onPress: () => void }) => (
-		<Pressable onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={s.toggle}>
+	// a render function, not a component: elements keep their identity across updates
+	const toggle = (on: boolean, label: string, onPress: () => void) => (
+		<Pressable key={label} onPress={onPress} accessibilityRole="checkbox" accessibilityState={{ checked: on }} style={s.toggle}>
 			<View style={[s.box, on && s.boxOn]}>{on ? <Text style={s.tick}>✓</Text> : null}</View>
 			<Text style={s.toggleText}>{label}</Text>
 		</Pressable>
@@ -163,8 +164,8 @@ export function FilterControls({
 			) : null}
 			<Row label={t("filter.only")}>
 				<View style={s.toggles}>
-					<Toggle on={filters.emergency} label={t("filter.emergency")} onPress={() => set({ emergency: !filters.emergency })} />
-					<Toggle on={filters.withRoute} label={t("filter.withRoute")} onPress={() => set({ withRoute: !filters.withRoute })} />
+					{toggle(filters.emergency, t("filter.emergency"), () => set({ emergency: !filters.emergency }))}
+					{toggle(filters.withRoute, t("filter.withRoute"), () => set({ withRoute: !filters.withRoute }))}
 				</View>
 			</Row>
 			{active ? (

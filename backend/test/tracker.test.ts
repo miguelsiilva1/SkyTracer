@@ -119,6 +119,26 @@ describe("Tracker", () => {
 		expect((await get("/aircraft/4d00f1/track?minutes=5000")).status).toBe(422);
 	});
 
+	it("serves a replay window with identification and routes", async () => {
+		positions = [
+			{ hex: "4d00f1", ts: "2026-11-24T10:00:05+00:00", callsign: "LGL32PR", lat: 41.3, lon: -8.6 },
+			{ hex: "4d00f1", ts: "2026-11-24T10:00:20+00:00", callsign: "LGL32PR", lat: 41.31, lon: -8.6 },
+			{ hex: "4d00f1", ts: "2026-11-24T10:00:35+00:00", callsign: "X&limit=1", lat: 41.32, lon: -8.6 }, // malformed: not queried
+		];
+		const resp = await get("/replay?from=2026-11-24T10:00:00Z&minutes=10");
+		const body = (await resp.json()) as any;
+		expect(body.positions).toHaveLength(3);
+		const q = selects.find((u) => u.pathname.endsWith("/position"))!;
+		expect(q.searchParams.getAll("ts")).toEqual(["gte.2026-11-24T09:59:00.000Z", "lt.2026-11-24T10:10:00.000Z"]);
+		expect(q.searchParams.get("limit")).toBe("1000");
+		const ids = selects.find((u) => u.pathname.endsWith("/aircraft"))!;
+		expect(ids.searchParams.get("hex")).toBe('in.("4d00f1")');
+		const routes = selects.find((u) => u.pathname.endsWith("/flight_route"))!;
+		expect(routes.searchParams.get("callsign")).toBe('in.("LGL32PR")');
+		expect((await get("/replay?from=yesterday")).status).toBe(422);
+		expect((await get("/replay?from=2026-11-24T10:00:00Z&minutes=60")).status).toBe(422);
+	});
+
 	it("keeps the batch when Supabase is down and retries on the next flush", async () => {
 		vi.restoreAllMocks();
 		let down = true;

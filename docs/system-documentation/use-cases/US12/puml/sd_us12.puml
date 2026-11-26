@@ -1,0 +1,37 @@
+@startuml
+autonumber
+actor "User" as U
+participant "ReplayBar /\nTopBar" as Bar
+participant "useReplay" as R
+participant "api.ts" as Api
+participant "Tracker\nhandle()" as T
+participant "Supabase" as DB
+
+U -> Bar : opens the replay
+Bar -> R : start(now − 1 h)
+R -> R : at = t, window = floor(t / 10 min)
+loop the window of `at` and the next one, if not loaded
+  R -> Api : fetchReplay(window, 10)
+  Api -> T : GET /replay?from=…&minutes=10
+  activate T
+  T -> DB : position: ts in [from − 60 s, from + 10 min), page by page
+  T -> DB : aircraft: hex in (…)
+  T -> DB : flight_route: callsign in (…), status = ok
+  T --> Api : {positions, aircraft, routes}
+  deactivate T
+  Api --> R : window indexed per aircraft
+end
+R -> R : for each aircraft: last position ≤ at\nand ≥ at − 60 s (binary search)
+R --> Bar : aircraft[] shown on the map
+
+opt playing (1×, 10×, 60×)
+  loop every 250 ms
+    R -> R : at += 250 ms × speed
+    note right: crossing a boundary loads\nthe window after the next
+  end
+end
+
+U -> Bar : Back to live
+Bar -> R : stop()
+R -> R : at = null; windows cleared
+@enduml

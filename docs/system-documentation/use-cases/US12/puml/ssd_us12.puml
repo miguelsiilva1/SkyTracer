@@ -3,8 +3,14 @@ autonumber
 actor "User" as A
 participant "System" as S
 
-A -> S : replayAirspace(instant)
+A -> S : startReplay(moment)
 activate S
-S --> A : returns aircraft and positions at that instant
+S --> A : shows the airspace at that moment (last position of each aircraft in the 60 s before)
 deactivate S
+opt
+  A -> S : play(speed) / pause / jump(interval) / goTo(moment)
+  S --> A : advances or moves the replayed airspace
+end
+A -> S : backToLive()
+S --> A : shows the live map again
 @enduml
