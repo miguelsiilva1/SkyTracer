@@ -58,11 +58,11 @@ Status: ✅ done · 🟡 partial (backend done, user interface pending)
 - The current state of each aircraft is kept in memory and updated on every read.
 - Retention: rows in `position` and `receiver_snapshot` are deleted after 7 days.
 
-**US03** 🟡 (backend in Sprint 1, user interface in Sprint 2)
+**US03** ✅ (backend and user interface in Sprint 1)
 - The route (airline, origin → destination) of every callsign observed is fetched from adsbdb and stored in `flight_route`.
 - `/aircraft/live`, `/aircraft/{hex}` and `/ws/live` return the route together with the position.
 
-**US04** 🟡 (backend in Sprint 1, user interface in Sprint 2)
+**US04** ✅ (backend and user interface in Sprint 1)
 - Registration, model and operator are fetched from adsbdb; the photo is fetched from planespotters, together with the photographer's name and a link to the photo page.
 
 **US05** ✅
@@ -75,10 +75,15 @@ Status: ✅ done · 🟡 partial (backend done, user interface pending)
 | Sprint | Dates | Goal | Stories |
 |---|---|---|---|
 | 0 | 10 – 16 Nov | Repository, architecture, Docker environment and backlog | — |
-| 1 | 17 – 30 Nov | Data collection and persistence running in the cloud | US01, US02, US05 ✅; backend of US03 and US04 (brought forward from Sprint 2); REST and WebSocket API |
-| 2 | 1 – 14 Dec | Complete map with enrichment | User interface of US03 and US04; US06–US10 |
+| 1 | 17 – 30 Nov | Data collection and persistence running in the cloud | US01, US02, US05 ✅; backend of US03 and US04 (brought forward from Sprint 2); REST and WebSocket API; brought forward from Sprint 2: web map, aircraft panel and track (US03, US04, US06, US07, US10), adsb.fi source (US23) |
+| 2 | 1 – 14 Dec | Complete map with enrichment | US08 and US09 ✅ and US21 ✅ (brought forward to the end of Sprint 1); wider adsb.fi coverage; closing US03, US04, US06, US07 and US10 |
 | 3 | 15 – 28 Dec | Cross-platform application, alerts, replay and coverage | US12, US13, US17, US18 |
 | 4 | 29 Dec – 5 Jan | Additional features, polishing, report and demo rehearsal | US11, US14–US16, US19 |
+
+### 4.1 Changes to the plan
+
+- **Deployment (Sprint 1).** The backend was planned on an Oracle Cloud Always Free virtual machine, whose capacity was unavailable. It was rewritten in TypeScript for Cloudflare Workers with a Durable Object, and later moved to a home server (Node.js in Docker, published over HTTPS by Tailscale Funnel), because the free ADS-B network APIs reject requests from Cloudflare's addresses.
+- **Scope brought forward.** The web map, the aircraft panel, the track, the adsb.fi source, search and filters, and the Portuguese translation were delivered in Sprint 1, ahead of the plan, which leaves Sprint 2 for closing those stories and Sprint 3 unchanged.
 
 ## 5. Definition of Done
 

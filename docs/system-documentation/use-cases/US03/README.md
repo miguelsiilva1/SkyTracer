@@ -1,6 +1,6 @@
 # US03 — View airline and route of a flight
 
-**Epic:** E1 · **Priority:** M · **SP:** 5 · **Status:** 🟡 backend in Sprint 1, UI in Sprint 2
+**Epic:** E1 · **Priority:** M · **SP:** 5 · **Status:** ✅ backend in Sprint 1, user interface brought forward to the end of Sprint 1
 
 ## User Story
 
@@ -11,7 +11,8 @@
 - The route (airline, origin → destination) of each seen callsign is fetched from adsbdb and stored in `flight_route`.
 - `/aircraft/live`, `/aircraft/{hex}`, and `/ws/live` return the route along with the position.
 - Routes with status other than `ok` (not found / error) are not returned.
-- *(Sprint 2)* The aircraft panel displays the airline and route in `OPO → LIS` format.
+- The aircraft panel displays the airline and the route as origin and destination codes (IATA, or ICAO when there is no IATA code) with the airport names; without a known route it says so.
+- Aircraft seen only by the adsb.fi network (US23) are also enriched, in memory only; nothing about them is stored.
 
 ## Preconditions
 

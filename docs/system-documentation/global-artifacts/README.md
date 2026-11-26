@@ -33,3 +33,15 @@ Notes:
 - **`Tracker`** is the single always-on component: it owns the `Collector`, the `Enricher` and the `Supabase` client, runs the loop (`start()`, `tick()`) and answers the REST API in `handle()`; the `server` module adapts Node's HTTP server to it and keeps the WebSocket clients (`addClient()`).
 - **Parsing separated from I/O:** `dump1090`, `adsbdb` and `planespotters` convert JSON into objects without side effects; external HTTP access is isolated in `ApiGate` and database access in `Supabase`.
 - **`Config`** is the single source of configuration, built from the environment variables by `loadConfig`.
+
+## 3. Deployment Diagram (DD)
+
+Runtime nodes and the protocols between them.
+
+![Deployment Diagram](svg/DD.svg)
+
+Notes:
+
+- The backend runs in Docker on a home server. A Tailscale container owns the network namespace, obtains the HTTPS certificate and publishes the API through Tailscale Funnel; the backend container shares that namespace and listens on `127.0.0.1:8080`, so no router port is opened.
+- The web application is a static export served by GitHub Pages; it talks to the backend over HTTPS and WSS and loads the base map from VersaTiles.
+- Only the backend talks to the receiver, adsb.fi, the enrichment APIs and Supabase; the database is never exposed to clients.

@@ -7,7 +7,7 @@ participant "adsbdb\n<<external>>" as Ext
 participant "Supabase\n(client)" as S
 database "Supabase\nPostgreSQL" as DB
 actor "User" as U
-participant "Tracker\nfetch()" as API
+participant "Tracker\nhandle()" as API
 
 == Enrichment (one step per loop iteration, every 3 s) ==
 T -> E : step(live aircraft, now)

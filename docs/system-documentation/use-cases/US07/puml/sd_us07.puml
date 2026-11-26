@@ -1,25 +1,26 @@
 @startuml
 autonumber
 actor "User" as U
-participant "App Expo\n(Sprint 2)" as App
-participant "Tracker\nfetch()" as API
-database "Supabase\nPostgreSQL" as DB
+participant "LiveMap" as M
+participant "App (Screen)" as App
+participant "AircraftPanel" as P
+participant "useLiveAircraft\n(WS /ws/live)" as WS
 
-U -> App : taps aircraft icon
-App -> API : GET /aircraft/{hex}
-activate API
-API -> DB : select aircraft where hex = {hex}
-DB --> API : identification + photo
-alt unknown aircraft
-  API --> App : 404
-else
-  API -> API : live state + route (memory)
-  API --> App : 200 { ..., live: {...} }
-end
-deactivate API
-App -> U : displays panel
-loop messages from /ws/live (US06)
-  App -> App : looks up hex in aircraft[]
-  App -> U : updates altitude, speed, squawk
+U -> M : taps aircraft icon
+M -> App : onSelect(hex)
+App -> App : setSelected(hex)\ncurrent = shown.find(hex)
+App -> WS : setView({bbox, keep: [hex]})
+note right: the selected aircraft is always\nsent, even outside the map area
+App -> P : aircraft = current
+P -> U : photo, callsign, identification, route,\nlive values (emergency squawk highlighted)
+
+loop every message from /ws/live (~3 s)
+  WS -> App : aircraft[]
+  alt aircraft still received and not filtered out
+    App -> P : aircraft = updated state
+    P -> U : updates the values
+  else no longer received or hidden
+    App -> U : closes the panel
+  end
 end
 @enduml

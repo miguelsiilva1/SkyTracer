@@ -1,6 +1,6 @@
 # US09 — Search aircraft
 
-**Epic:** E2 · **Priority:** S · **SP:** 2 · **Status:** ✅ implemented in Sprint 2
+**Epic:** E2 · **Priority:** S · **SP:** 2 · **Status:** ✅ implemented in Sprint 1 (brought forward)
 
 ## User Story
 
