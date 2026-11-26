@@ -22,6 +22,7 @@ src/
   useReplay.ts                airspace replay from the stored history, in 10-minute windows (US12)
   useLiveAircraft.ts          live state from WS /ws/live, with automatic reconnection (US06); reports the visible area
   api.ts                      REST calls (track, US10; stored aircraft, US09)
+  alerts.ts                   alert settings, matching and firing once per appearance (US13)
   filters.ts                  search keywords and quick filters over the live state (US08, US09)
   altitude.ts                 altitude colour scale shared by icons, track and legend
   theme.ts                    design tokens: day and night palettes, map styles, type scale, spacing
@@ -33,6 +34,7 @@ src/
     TopBar.tsx                title block in ruled sections: status, search, filters, legend, theme and language;
                               on narrow screens a compact bar whose filters open on demand
     ReplayBar.tsx             replay controls: time, play and pause, speed, jumps, back to live (US12)
+    Alerts.tsx                alert settings section and the alerts shown over the map (US13)
     SearchFilters.tsx         search field and results (US09), quick filters (US08)
 assets/source/                SVG sources of the app icon, splash and favicon (PNGs rendered from them)
 ```

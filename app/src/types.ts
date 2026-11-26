@@ -49,6 +49,8 @@ export interface LiveAircraft {
 	dest_icao: string | null;
 	dest_iata: string | null;
 	dest_name: string | null;
+	/** Military aircraft, from the adsb.fi database (absent in older API versions). */
+	military?: boolean;
 	extra: ExtraParameters | null;
 	extra_source: "adsb.fi" | null;
 }

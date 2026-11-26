@@ -39,7 +39,7 @@ function network() {
 			// also seen by the receiver: contributes only extra parameters
 			{ hex: "4d00f1", flight: "LGL32PR ", lat: 41.4, lon: -8.6, alt_baro: 13400, alt_geom: 13850, tas: 410, ias: 300, mach: 0.65, wd: 250, ws: 30, oat: -12, seen: 0, seen_pos: 0 },
 			// seen only by the network
-			{ hex: "3c6589", flight: "DLH1170 ", r: "D-AIUA", t: "A320", desc: "AIRBUS A-320", lat: 43.1, lon: -5.2, alt_baro: 37000, gs: 450, track: 30, seen: 0, seen_pos: 1 },
+			{ hex: "3c6589", flight: "DLH1170 ", r: "D-AIUA", t: "A320", desc: "AIRBUS A-320", lat: 43.1, lon: -5.2, alt_baro: 37000, gs: 450, track: 30, seen: 0, seen_pos: 1, dbFlags: 1 },
 		],
 	};
 }
@@ -186,6 +186,12 @@ describe("Tracker", () => {
 		await new Promise((resolve) => setTimeout(resolve, 100));
 		await tick(); // a second area within a second is applied on the next tick, not answered at once
 		expect(sources(await next())).toEqual(["3c6589", "4d00f1"]);
+		await new Promise((resolve) => setTimeout(resolve, 1100)); // immediate replies at most once per second
+		ws.send(JSON.stringify({ bbox: [-9.5, 40.5, -7.5, 42], military: true })); // 3c6589 is military in the fixture
+		expect(sources(await next())).toEqual(["3c6589", "4d00f1"]);
+		await new Promise((resolve) => setTimeout(resolve, 1100));
+		ws.send(JSON.stringify({ bbox: [-9.5, 40.5, -7.5, 42], watch: ["d-aiua"] })); // by registration
+		expect(sources(await next())).toEqual(["3c6589", "4d00f1"]);
 		ws.send("not json"); // ignored
 		ws.close();
 		server.close();
@@ -207,10 +213,11 @@ describe("adsb.fi network", () => {
 		expect(bySource).toEqual({ "4d00f1": "receiver", "3c6589": "adsb.fi" });
 
 		const lh = live.find((a) => a.hex === "3c6589");
-		expect(lh).toMatchObject({ registration: "D-AIUA", icao_type: "A320", rssi_dbfs: null });
+		expect(lh).toMatchObject({ registration: "D-AIUA", icao_type: "A320", rssi_dbfs: null, military: true });
 		const own = live.find((a) => a.hex === "4d00f1");
 		expect(own.extra).toMatchObject({ alt_geom_ft: 13850, tas_kt: 410, mach: 0.65, wind_dir_deg: 250, oat_c: -12 });
 		expect(own.extra_source).toBe("adsb.fi");
+		expect(own.military).toBe(false);
 		expect(own.lat).toBe(41.37); // position always from the receiver when it has one
 
 		const batch = rpcs.find((r) => r.fn === "record_batch")!.body;

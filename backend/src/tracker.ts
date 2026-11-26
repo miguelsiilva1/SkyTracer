@@ -134,8 +134,10 @@ export class Tracker {
 
 	/**
 	 * Registers a WebSocket client of /ws/live and sends it the current state right away. A client
-	 * may send `{"bbox": [west, south, east, north], "keep": [hex]}`: it then receives every receiver
-	 * aircraft but only the network aircraft inside that area (and those in `keep`).
+	 * may send `{"bbox": [west, south, east, north], "keep": [hex], "military": bool, "watch": [id]}`:
+	 * it then receives every receiver aircraft, but only the network aircraft inside that area, plus
+	 * those it needs for its alerts anywhere (US13): kept, emergencies, military if asked, and those
+	 * whose ICAO address, registration, type or callsign is on its watch list.
 	 */
 	addClient(ws: WebSocket): void {
 		this.clients.set(ws, null);
@@ -260,6 +262,8 @@ export class Tracker {
 			dest_name: route?.dest_name ?? null,
 			dest_lat: route?.dest_lat ?? null,
 			dest_lon: route?.dest_lon ?? null,
+			// only adsb.fi knows military aircraft: a receiver aircraft is flagged when the network also sees it
+			military: n?.military ?? false,
 			extra,
 			extra_source: extra ? NETWORK_NAME : null,
 		};
@@ -366,27 +370,53 @@ interface View {
 	east: number;
 	north: number;
 	keep: Set<string>;
+	military: boolean;
+	watch: Set<string>; // upper case
 }
 
 const HEX = /^[0-9a-f]{6}$/;
+const WATCH_ID = /^[A-Z0-9-]{2,10}$/;
+const EMERGENCY_SQUAWKS = new Set(["7500", "7600", "7700"]);
 const CALLSIGN = /^[A-Z0-9]{1,8}$/;
 
 function parseView(text: string): View | null {
 	try {
-		const { bbox, keep } = JSON.parse(text) as { bbox?: unknown; keep?: unknown };
+		const { bbox, keep, military, watch } = JSON.parse(text) as { bbox?: unknown; keep?: unknown; military?: unknown; watch?: unknown };
 		if (!Array.isArray(bbox) || bbox.length !== 4 || !bbox.every((v) => typeof v === "number" && Number.isFinite(v))) return null;
 		const [west, south, east, north] = bbox as number[];
 		const hexes = Array.isArray(keep) ? keep.filter((h): h is string => typeof h === "string" && HEX.test(h)).slice(0, 10) : [];
-		return { west: west!, south: south!, east: east!, north: north!, keep: new Set(hexes) };
+		const ids = Array.isArray(watch)
+			? watch.filter((w): w is string => typeof w === "string").map((w) => w.toUpperCase()).filter((w) => WATCH_ID.test(w)).slice(0, 20)
+			: [];
+		return { west: west!, south: south!, east: east!, north: north!, keep: new Set(hexes), military: military === true, watch: new Set(ids) };
 	} catch {
 		return null;
 	}
 }
 
-/** Receiver aircraft always; network aircraft only inside the view (or kept). */
-function inView<T extends { hex: string; source: string; lat: number | null; lon: number | null }>(list: T[], v: View): T[] {
+interface Viewable {
+	hex: string;
+	source: string;
+	lat: number | null;
+	lon: number | null;
+	squawk: string | null;
+	military: boolean;
+	registration: string | null;
+	icao_type: string | null;
+	callsign: string | null;
+}
+
+/** Whether a client needs an aircraft for its alerts, wherever it is. */
+function wanted(a: Viewable, v: View): boolean {
+	if (v.keep.has(a.hex) || (a.squawk && EMERGENCY_SQUAWKS.has(a.squawk)) || (v.military && a.military)) return true;
+	if (!v.watch.size) return false;
+	return [a.hex, a.registration, a.icao_type, a.callsign].some((id) => id && v.watch.has(id.toUpperCase()));
+}
+
+/** Receiver aircraft always; network aircraft only inside the view, or when wanted for alerts. */
+function inView<T extends Viewable>(list: T[], v: View): T[] {
 	return list.filter((a) => {
-		if (a.source === "receiver" || v.keep.has(a.hex)) return true;
+		if (a.source === "receiver" || wanted(a, v)) return true;
 		if (a.lat === null || a.lon === null || a.lat < v.south || a.lat > v.north) return false;
 		return v.west <= v.east ? a.lon >= v.west && a.lon <= v.east : a.lon >= v.west || a.lon <= v.east; // across 180°
 	});

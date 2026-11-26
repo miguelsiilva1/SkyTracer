@@ -9,7 +9,7 @@
 ## Acceptance Criteria
 
 - The system reads the adsb.fi open data API over four 250 NM areas covering the Iberian Peninsula (Porto, Madrid, Seville, Barcelona), one area per loop iteration, so each area is refreshed about every 12 s and adsb.fi receives at most one request every 3 s (the limit is one per second). Areas overlap; an aircraft seen in several keeps its most recent state.
-- Each WebSocket client reports the map area it shows (with a margin) and the selected aircraft; it receives every receiver aircraft but only the network aircraft in that area, so the message size follows what is on screen rather than the whole peninsula.
+- Each WebSocket client reports the map area it shows (with a margin) and the selected aircraft; it receives every receiver aircraft but only the network aircraft in that area, so the message size follows what is on screen rather than the whole peninsula. The aircraft needed by the client's alerts (US13) are also sent wherever they are.
 - Aircraft with a position from the course receiver keep that position; adsb.fi only adds those the receiver does not position.
 - Each live aircraft has a `source` (`receiver` or `adsb.fi`). On the map, receiver aircraft are filled icons and adsb.fi aircraft outlined icons, explained in the legend; the user can show all sources or only the receiver.
 - The aircraft panel states the source of the position, and parameters the receiver does not decode (GPS altitude, true and indicated airspeed, Mach, wind, temperature) appear in a separate block labelled with adsb.fi.

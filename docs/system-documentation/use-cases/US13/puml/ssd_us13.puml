@@ -3,8 +3,15 @@ autonumber
 actor "User" as A
 participant "System" as S
 
-A -> S : configureAlert(type, criteria, enabled)
+A -> S : configureAlerts(emergency, military, watchList, notifications)
 activate S
-S --> A : returns saved alert
+S --> A : saves the settings on the device
 deactivate S
+loop every live update
+  opt an aircraft matching the settings appears
+    S --> A : alert (callsign, time, reason)
+  end
+end
+A -> S : chooseAlert(aircraft)
+S --> A : centres the map and shows the aircraft details
 @enduml

@@ -2,9 +2,11 @@ import { StatusBar } from "expo-status-bar";
 import { useEffect, useState } from "react";
 import { Platform, StyleSheet, useWindowDimensions, View } from "react-native";
 import { fetchTrack } from "./src/api";
+import { useAlerts } from "./src/alerts";
 import { applyFilters, type Filters, NO_FILTERS } from "./src/filters";
 import AircraftPanel from "./src/components/AircraftPanel";
 import LiveMap, { type MapFocus } from "./src/components/LiveMap";
+import { AlertToasts, useDescribeAlert } from "./src/components/Alerts";
 import ReplayBar from "./src/components/ReplayBar";
 import TopBar, { type SourceFilter } from "./src/components/TopBar";
 import { TRACK_MINUTES, TRACK_REFRESH_MS } from "./src/config";
@@ -29,6 +31,8 @@ function Screen() {
 	const { width } = useWindowDimensions();
 	const wide = width >= WIDE;
 	const replay = useReplay();
+	// alerts (US13) follow the live airspace only, not the replay
+	const alerts = useAlerts(aircraft, !replay.active, useDescribeAlert());
 
 	// during a replay (US12) the map shows the stored airspace instead of the live one
 	const base = replay.active ? replay.aircraft : aircraft;
@@ -54,10 +58,12 @@ function Screen() {
 		};
 	}, [selected, stored]);
 
-	// only the adsb.fi aircraft in the area shown are received; the selected one is always kept
+	// only the adsb.fi aircraft in the area shown are received, plus the selected one and those the
+	// alerts need anywhere (emergencies, military if enabled, the watch list)
+	const { military, watch } = alerts.settings;
 	useEffect(() => {
-		if (bbox) setView({ bbox, keep: selected ? [selected] : [] });
-	}, [bbox, selected, setView]);
+		if (bbox) setView({ bbox, keep: selected ? [selected] : [], military, watch });
+	}, [bbox, selected, military, watch, setView]);
 
 	// a search result: centre the map on it and open its panel (US09)
 	const pick = (a: LiveAircraft) => {
@@ -85,7 +91,20 @@ function Screen() {
 					compact={!wide}
 					replayAt={replay.at}
 					onReplay={() => replay.start(Date.now() - 60 * 60_000)}
+					alertSettings={alerts.settings}
+					onAlertSettings={alerts.setSettings}
 				/>
+				{!replay.active ? (
+					<AlertToasts
+						alerts={alerts.alerts}
+						compact={!wide}
+						onDismiss={alerts.dismiss}
+						onPick={(hex) => {
+							const a = aircraft.find((x) => x.hex === hex);
+							if (a) pick(a);
+						}}
+					/>
+				) : null}
 				{replay.active && replay.at !== null ? (
 					<ReplayBar
 						at={replay.at}
