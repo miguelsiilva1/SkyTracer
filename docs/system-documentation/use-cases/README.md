@@ -17,14 +17,14 @@ Status: ✅ done · 🟡 backend done, application pending · ⏳ planned · �
 |---|---|---|---|---|---|
 | [US01](US01/README.md) | Read aircraft.json | 1 | ✅ | ✓ | ✓ |
 | [US02](US02/README.md) | Store positions | 1 | ✅ | ✓ | ✓ |
-| [US03](US03/README.md) | Airline and route | 1–2 | 🟡 | ✓ | ✓ |
-| [US04](US04/README.md) | Photo, registration and model | 1–2 | 🟡 | ✓ | ✓ |
+| [US03](US03/README.md) | Airline and route | 1 | ✅ | ✓ | ✓ |
+| [US04](US04/README.md) | Photo, registration and model | 1 | ✅ | ✓ | ✓ |
 | [US05](US05/README.md) | Enrichment caching | 1 | ✅ | ✓ | ✓ |
-| [US06](US06/README.md) | Real-time map | 1–2 | 🟡 | ✓ | ✓ |
-| [US07](US07/README.md) | Details panel | 1–2 | 🟡 | ✓ | ✓ |
-| [US08](US08/README.md) | Filter aircraft | 2 | ✅ | ✓ | ✓ |
-| [US09](US09/README.md) | Search aircraft | 2 | ✅ | ✓ | ✓ |
-| [US10](US10/README.md) | Track | 1–2 | 🟡 | ✓ | ✓ |
+| [US06](US06/README.md) | Real-time map | 1 | ✅ | ✓ | ✓ |
+| [US07](US07/README.md) | Details panel | 1 | ✅ | ✓ | ✓ |
+| [US08](US08/README.md) | Filter aircraft | 1 | ✅ | ✓ | ✓ |
+| [US09](US09/README.md) | Search aircraft | 1 | ✅ | ✓ | ✓ |
+| [US10](US10/README.md) | Track | 1 | ✅ | ✓ | ✓ |
 | [US11](US11/README.md) | METAR | 4 | ⏳ | ✓ | — |
 | [US12](US12/README.md) | Replay | 3 | ⏳ | ✓ | — |
 | [US13](US13/README.md) | Alerts | 3 | ⏳ | ✓ | — |
@@ -34,7 +34,7 @@ Status: ✅ done · 🟡 backend done, application pending · ⏳ planned · �
 | [US17](US17/README.md) | Coverage map | 3 | ⏳ | ✓ | — |
 | [US18](US18/README.md) | Cross-platform | 3 | ⏳ | — | — |
 | [US19](US19/README.md) | Favourites | 4 | ⏳ | ✓ | — |
-| [US21](US21/README.md) | English and Portuguese | 2 | 🟡 | — | — |
+| [US21](US21/README.md) | English and Portuguese | 1 | ✅ | — | — |
 | [US22](US22/README.md) | Extended aircraft and flight data | — | ⏳ | — | — |
-| [US23](US23/README.md) | Aircraft from the adsb.fi network | 2 | ✅ | — | — |
+| [US23](US23/README.md) | Aircraft from the adsb.fi network | 1 | ✅ | — | — |
 | [US20](US20/README.md) | User accounts and sign-in | future | 🔮 | ✓ | — |

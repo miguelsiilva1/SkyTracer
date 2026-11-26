@@ -1,6 +1,6 @@
 # US23 — Aircraft from the adsb.fi network
 
-**Epic:** E2 · **Priority:** S · **SP:** 3 · **Status:** ✅ implemented in Sprint 2
+**Epic:** E2 · **Priority:** S · **SP:** 3 · **Status:** ✅ implemented in Sprint 1 (brought forward)
 
 ## User Story
 

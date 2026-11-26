@@ -1,6 +1,6 @@
 # US06 — View aircraft on a real-time map
 
-**Epic:** E2 · **Priority:** M · **SP:** 5 · **Status:** 🟡 backend (WebSocket) in Sprint 1, app in Sprint 2
+**Epic:** E2 · **Priority:** M · **SP:** 5 · **Status:** ✅ backend (WebSocket) in Sprint 1, app brought forward to the end of Sprint 1
 
 ## User Story
 
@@ -12,9 +12,9 @@
 - The app reports the visible map area after every pan or zoom; the server then limits the adsb.fi aircraft it sends to that area (US23).
 - Each message has the format `{"ts": ..., "aircraft": [...]}`, identical to `GET /aircraft/live`.
 - Only aircraft with a position received ≤ 60 s ago are sent.
-- *(Sprint 2)* The app draws each aircraft on the MapLibre map with its icon rotated according to `track_deg`.
-- *(Sprint 2)* If the connection drops, the app reconnects automatically.
-- *(Sprint 2)* The map has three themes, remembered on the device: light (chart paper), dark and standard (street map); aircraft, track and legend share one altitude colour scale.
+- The app draws each aircraft on the MapLibre map with its icon rotated according to `track_deg`; receiver aircraft are filled and adsb.fi aircraft outlined.
+- If the connection drops, the app reconnects automatically with exponential backoff, keeping the last known aircraft on screen and saying so.
+- The map has three themes, remembered on the device: light, dark and standard (street map), on VersaTiles base maps; aircraft, track and legend share one altitude colour scale.
 
 ## Preconditions
 
@@ -36,7 +36,8 @@
 
 | Step | Condition | System response |
 |---|---|---|
-| 4 | Client disconnected | The send error is ignored; the runtime removes the socket |
+| 4 | Client disconnected | The socket is removed from the client list when it closes |
+| 4 | Client more than 1 MB behind | The connection is terminated; the app reconnects |
 | 4 | dump1090 unavailable | Continues sending the last known state until expired |
 
 ## Design Rationale

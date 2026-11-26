@@ -1,0 +1,52 @@
+@startuml DD
+skinparam shadowing false
+skinparam roundCorner 8
+skinparam defaultFontName Helvetica
+skinparam nodesep 50
+skinparam ranksep 60
+skinparam node {
+  BorderColor #34495E
+  BackgroundColor #F6F8F6
+}
+skinparam cloud {
+  BorderColor #7A8794
+  BackgroundColor #FFFFFF
+}
+skinparam ArrowColor #34495E
+
+title SkyTracer — Deployment Diagram
+
+node "User device\n(browser)" as Browser {
+  artifact "Expo web app\n(static export)" as App
+}
+
+cloud "GitHub Pages" as Pages
+cloud "VersaTiles\n(base map tiles)" as Tiles
+
+node "Home server (ZimaOS)" as Home {
+  node "Docker" {
+    node "skytracer-tailscale\n<<container>>" as TS {
+      component "Tailscale Funnel\n(HTTPS, certificate)" as Funnel
+    }
+    node "skytracer-backend\n<<container, Node.js 22>>" as BE {
+      component "server\n(HTTP + WebSocket)" as Server
+      component "Tracker\n(loop, live state)" as Tracker
+    }
+  }
+}
+
+cloud "Supabase\n(PostgreSQL)" as DB
+cloud "STAER receiver\n(dump1090)" as Rx
+cloud "adsb.fi\n(open data API)" as Net
+cloud "adsbdb · planespotters.net" as Enrich
+
+Pages --> App : HTTPS (static files)
+App --> Tiles : HTTPS (vector tiles)
+App --> Funnel : HTTPS / WSS\nskytracer.tail46dc6e.ts.net
+Funnel --> Server : HTTP 127.0.0.1:8080\n(shared network namespace)
+Server --> Tracker
+Tracker --> Rx : GET aircraft.json\nevery 3 s
+Tracker --> Net : GET one 250 NM area\nper iteration
+Tracker --> Enrich : ≤ 1 request / API / iteration
+Tracker --> DB : record_batch every 15 s\nreads: details, tracks
+@enduml

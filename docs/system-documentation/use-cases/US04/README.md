@@ -1,6 +1,6 @@
 # US04 — View photo, registration, and model of the aircraft
 
-**Epic:** E1 · **Priority:** S · **SP:** 3 · **Status:** 🟡 backend in Sprint 1, UI in Sprint 2
+**Epic:** E1 · **Priority:** S · **SP:** 3 · **Status:** ✅ backend in Sprint 1, user interface brought forward to the end of Sprint 1
 
 ## User Story
 
@@ -11,7 +11,7 @@
 - Registration, model, manufacturer, operator, and country come from adsbdb.
 - The photo comes from planespotters.net, with the photographer's name and link to the photo page (required by API terms).
 - `GET /aircraft/{hex}` returns these data and the live state (`live`, `null` if not currently seen); `404` if the hex is unknown.
-- *(Sprint 2)* The panel displays the photo with photographer credit.
+- The panel displays the photo at the top, with the photographer's name linking to the photo page, and the registration, model and operator under the callsign.
 
 ## Preconditions
 

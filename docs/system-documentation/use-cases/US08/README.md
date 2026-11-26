@@ -1,6 +1,6 @@
 # US08 — Filter aircraft
 
-**Epic:** E2 · **Priority:** M · **SP:** 5 · **Status:** ✅ implemented in Sprint 2
+**Epic:** E2 · **Priority:** M · **SP:** 5 · **Status:** ✅ implemented in Sprint 1 (brought forward)
 
 ## User Story
 

@@ -1,6 +1,6 @@
 # US07 — View aircraft detail panel
 
-**Epic:** E2 · **Priority:** M · **SP:** 3 · **Status:** 🟡 backend in Sprint 1, app in Sprint 2
+**Epic:** E2 · **Priority:** M · **SP:** 3 · **Status:** ✅ backend in Sprint 1, app brought forward to the end of Sprint 1
 
 ## User Story
 
@@ -8,11 +8,11 @@
 
 ## Acceptance Criteria
 
-- When selecting an aircraft on the map, the app requests `GET /aircraft/{hex}`.
-- The panel displays: callsign, registration, model, operator, altitude (ft), speed (kt), vertical rate, squawk, track, route (origin → destination), and photo with credit.
-- If the aircraft is no longer seen, the panel indicates that the state is not current (`live = null`).
-- Emergency squawks (`7500`, `7600`, `7700`) are highlighted.
-- Panel data track updates from `/ws/live`.
+- Selecting an aircraft on the map (or a search result, US09) opens the panel with the data already received over `/ws/live`, which includes the enrichment and the route, so no extra request is needed.
+- The panel displays: photo with credit, callsign, registration, model, operator, route (origin → destination), altitude (ft), ground speed (kt), track, vertical rate (climbing / descending), squawk, ICAO address, signal (dBFS) and position source (ADS-B or MLAT).
+- The panel states the source of the aircraft (Porto receiver or adsb.fi) and, for adsb.fi, shows the extra parameters it provides (US23).
+- Emergency squawks (`7500`, `7600`, `7700`) are highlighted with their meaning.
+- The panel updates with every message from `/ws/live`; when the aircraft is no longer received (or is hidden by the filters), the panel closes.
 
 ## Preconditions
 
@@ -33,12 +33,13 @@
 
 | Step | Condition | System response |
 |---|---|---|
-| 3 | Unknown hex | `404`; the app displays only WebSocket data |
-| 3 | Enrichment still pending | Identification/photo fields set to `null`; the app displays "fetching data" |
+| 3 | Enrichment still pending | Identification and photo are `null`; the panel shows "Not yet identified" and fills in when enrichment arrives |
+| 3 | Route unknown | The panel says the route is not known for this callsign |
 
 ## Design Rationale
 
-- Detail reuses the endpoint from US04; dynamic state comes from the already open WebSocket, avoiding polling.
+- The live message already carries identification, photo and route, so the panel needs no request of its own and never polls; `GET /aircraft/{hex}` (US04) remains for aircraft that are not on the map (US09).
+- The layout follows an ATC flight progress strip: ruled boxes, the altitude colour as the strip edge, and codes in a monospaced face.
 
 ## Diagrams
 

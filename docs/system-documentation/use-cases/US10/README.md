@@ -1,6 +1,6 @@
 # US10 — View aircraft track
 
-**Epic:** E2 · **Priority:** S · **SP:** 3 · **Status:** 🟡 backend in Sprint 1, app in Sprint 2
+**Epic:** E2 · **Priority:** S · **SP:** 3 · **Status:** ✅ backend in Sprint 1, app brought forward to the end of Sprint 1
 
 ## User Story
 
@@ -10,8 +10,9 @@
 
 - `GET /aircraft/{hex}/track?minutes=N` returns stored positions for the last N minutes (1–1440, default 60), in chronological order.
 - Each point has `ts`, `lat`, `lon`, `altitude_ft`, `speed_kt`, `track_deg`, `on_ground`.
-- *(Sprint 2)* Upon selecting an aircraft, the app draws the track as a line, coloured by altitude.
-- *(Sprint 2)* The track is extended with positions received via WebSocket.
+- Upon selecting a receiver aircraft, the app draws its track of the last 60 minutes as a line, each segment coloured by altitude.
+- The track ends at the current position from the WebSocket and is refreshed every 15 s while the aircraft stays selected.
+- Aircraft seen only by adsb.fi have no track (their positions are not stored), and the panel says so.
 
 ## Preconditions
 
@@ -26,7 +27,7 @@
 1. The user selects an aircraft.
 2. The app requests the track from the system.
 3. The system returns positions for the interval.
-4. The app draws the line and appends new points as they arrive.
+4. The app draws the line up to the current position and refreshes it every 15 s.
 
 ## Alternative Flows / Exceptions
 
