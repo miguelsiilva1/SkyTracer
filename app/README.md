@@ -19,6 +19,7 @@ The app uses the production API by default; `EXPO_PUBLIC_API_URL` points it to a
 ```
 App.tsx                       layout: map, header and aircraft panel
 src/
+  useReplay.ts                airspace replay from the stored history, in 10-minute windows (US12)
   useLiveAircraft.ts          live state from WS /ws/live, with automatic reconnection (US06); reports the visible area
   api.ts                      REST calls (track, US10; stored aircraft, US09)
   filters.ts                  search keywords and quick filters over the live state (US08, US09)
@@ -31,6 +32,7 @@ src/
     AircraftPanel.tsx         aircraft details as a flight progress strip: route, live values, photo (US03, US04, US07)
     TopBar.tsx                title block in ruled sections: status, search, filters, legend, theme and language;
                               on narrow screens a compact bar whose filters open on demand
+    ReplayBar.tsx             replay controls: time, play and pause, speed, jumps, back to live (US12)
     SearchFilters.tsx         search field and results (US09), quick filters (US08)
 assets/source/                SVG sources of the app icon, splash and favicon (PNGs rendered from them)
 ```

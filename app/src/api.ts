@@ -1,5 +1,5 @@
 import { API_URL } from "./config";
-import type { KnownAircraft, TrackPoint } from "./types";
+import type { KnownAircraft, ReplayWindow, TrackPoint } from "./types";
 
 export async function fetchTrack(hex: string, minutes: number, signal?: AbortSignal): Promise<TrackPoint[]> {
 	const resp = await fetch(`${API_URL}/aircraft/${hex}/track?minutes=${minutes}`, { signal });
@@ -12,5 +12,12 @@ export async function fetchAircraft(hex: string, signal?: AbortSignal): Promise<
 	const resp = await fetch(`${API_URL}/aircraft/${hex}`, { signal });
 	if (resp.status === 404) return null;
 	if (!resp.ok) throw new Error(`aircraft: HTTP ${resp.status}`);
+	return resp.json();
+}
+
+/** Stored positions from `from` − 60 s to `from` + `minutes`, for the replay (US12). */
+export async function fetchReplay(from: Date, minutes: number, signal?: AbortSignal): Promise<ReplayWindow> {
+	const resp = await fetch(`${API_URL}/replay?from=${from.toISOString()}&minutes=${minutes}`, { signal });
+	if (!resp.ok) throw new Error(`replay: HTTP ${resp.status}`);
 	return resp.json();
 }

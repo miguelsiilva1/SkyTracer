@@ -26,7 +26,7 @@ Status: ✅ done · 🟡 backend done, application pending · ⏳ planned · �
 | [US09](US09/README.md) | Search aircraft | 1 | ✅ | ✓ | ✓ |
 | [US10](US10/README.md) | Track | 1 | ✅ | ✓ | ✓ |
 | [US11](US11/README.md) | METAR | 4 | ⏳ | ✓ | — |
-| [US12](US12/README.md) | Replay | 3 | ⏳ | ✓ | — |
+| [US12](US12/README.md) | Replay | 1 | ✅ | ✓ | ✓ |
 | [US13](US13/README.md) | Alerts | 3 | ⏳ | ✓ | — |
 | [US14](US14/README.md) | LPPR arrivals and departures | 4 | ⏳ | ✓ | — |
 | [US15](US15/README.md) | Daily statistics | 4 | ⏳ | ✓ | — |

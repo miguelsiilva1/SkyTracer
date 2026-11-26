@@ -79,6 +79,7 @@ The free ADS-B APIs tested (adsb.fi, OpenSky, adsb.lol, airplanes.live) reject r
 | `GET /aircraft/live?max_age_seconds=60` | Aircraft with a recent position, including enrichment (registration, model, photo) and route (origin and destination); each has a `source` and, when available, `extra` parameters from adsb.fi |
 | `GET /aircraft/{hex}` | Aircraft data and its current state (`live`, `null` if it is not currently being received) |
 | `GET /aircraft/{hex}/track?minutes=60` | Track: positions stored in the last *N* minutes (maximum 1440) |
+| `GET /replay?from=<ISO 8601>&minutes=10` | Replay window (US12): positions stored from `from` − 60 s to `from` + *N* minutes (maximum 15), with the identification of those aircraft and the routes of their callsigns |
 | `WS /ws/live` | Sends the current state on connection and then every ~3 s, in the format `{"ts": ..., "aircraft": [...]}`, identical to `/aircraft/live`. A client may send `{"bbox": [west, south, east, north], "keep": [hex]}`: it then receives every receiver aircraft but only the adsb.fi aircraft inside that area, plus those listed in `keep` |
 
 ### 4.2 Retention policy

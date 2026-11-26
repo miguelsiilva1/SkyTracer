@@ -80,3 +80,38 @@ export interface KnownAircraft {
 	last_seen: string | null;
 	live: LiveAircraft | null;
 }
+
+/** GET /replay: stored positions of a time window, with identification and routes (US12). */
+export interface ReplayPosition {
+	hex: string;
+	ts: string;
+	callsign: string | null;
+	lat: number;
+	lon: number;
+	altitude_ft: number | null;
+	on_ground: boolean;
+	speed_kt: number | null;
+	track_deg: number | null;
+	vert_rate_fpm: number | null;
+	squawk: string | null;
+	mlat: boolean;
+}
+
+export type ReplayIdentity = Pick<
+	LiveAircraft,
+	"hex" | "registration" | "icao_type" | "type_name" | "manufacturer" | "operator" | "country" | "photo_url" | "photo_credit" | "photo_link"
+>;
+
+export type ReplayRoute = { callsign: string } & Pick<
+	LiveAircraft,
+	| "airline_name" | "airline_icao" | "airline_iata" | "origin_icao" | "origin_iata" | "origin_name"
+	| "dest_icao" | "dest_iata" | "dest_name"
+>;
+
+export interface ReplayWindow {
+	from: string;
+	until: string;
+	positions: ReplayPosition[];
+	aircraft: ReplayIdentity[];
+	routes: ReplayRoute[];
+}
